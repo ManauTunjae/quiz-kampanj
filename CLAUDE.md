@@ -124,3 +124,43 @@ Animationer:
 - Fade/slide mellan frågor. Progress bar som fylls.
 - Slutet: konfetti i palettens färger + resultatkort med mjuk scale ("pop").
 - Respektera `prefers-reduced-motion`: ingen konfetti, inga stora rörelser.
+
+## API-regler
+
+- JSON-fält är i `camelCase` (t.ex. `accentColor`), databasens kolumner i `snake_case`.
+- Fel returneras som `{ "error": "text på svenska" }`. Valideringsfel har också `issues: [{ path, message }]`.
+- Statuskoder: 200/201 OK, 400 ogiltig data, 401 inte inloggad, 429 för många inloggningsförsök, 500 serverfel.
+- Admin-login har en enkel spärr: max 5 fel lösenord per 15 minuter per IP (i minnet).
+
+## Backend: mappstruktur (`backend/src`)
+
+```
+src/
+├─ index.ts          → startar appen: middleware, routes, felhantering, serve()
+├─ config/env.ts     → ALLA miljövariabler (env). Använd aldrig process.env någon annanstans
+├─ database/         → databaskopplingen (supabase.ts)
+├─ routes/           → URL:er. Tunna: ta emot, validera, anropa service, svara
+├─ services/         → affärslogik och databasfrågor (t.ex. campaign-service.ts)
+├─ validation/       → zod-scheman (+ hook.ts för gemensamt 400-svar)
+├─ middleware/       → t.ex. require-admin.ts
+├─ lib/              → delar med tillstånd/integration: session (cookie), login-limiter
+└─ utils/            → små rena hjälpfunktioner: slugify, password
+```
+
+Regler:
+- En fil gör en sak. Ny feature = ny route-fil + ny service-fil + nytt valideringsschema.
+- Services kastar `Error` vid fel. `app.onError` i index.ts svarar 500. Routes har ingen try/catch.
+- SQL-filer ligger utanför `src`, i `backend/db/` (schema.sql, seed.sql).
+- Importer har filändelsen `.js` (t.ex. `'../lib/session.js'`), även om filen är `.ts`.
+- Frontend (`frontend/`) följer Next.js egen struktur. Delade hjälpfunktioner till `frontend/lib/`.
+
+## Filer med " 2" i namnet
+
+Mappen ligger på Skrivbordet, och iCloud kan skapa kopior som `package 2.json`.
+Det är skräp. Committa dem aldrig. De ignoreras i `.gitignore`. Flytta projektet utanför iCloud.
+
+## Postman och POST utan body
+
+`csrf()` i index.ts ger 403 på POST utan `Content-Type` och utan `Origin` (så ser ett formulär från en annan sida ut).
+I Postman: välj Body → raw → JSON och skriv `{}` även när requesten inte behöver data (t.ex. `/auth/logout`).
+Webbläsaren skickar alltid `Origin`, så frontend påverkas inte. Frontendens `fetch` ska ändå skicka `Content-Type: application/json` på POST.
