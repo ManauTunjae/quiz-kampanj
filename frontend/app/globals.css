@@ -1,0 +1,58 @@
+@import "tailwindcss";
+
+/* Färg-tokens. Tailwind 4 skapar klasser som bg-plum-950, text-blush-100 osv. */
+@theme {
+  --color-plum-950: #150016; /* mörkaste bakgrund */
+  --color-plum-900: #29104a; /* kort och sektioner */
+  --color-mauve-700: #522c5d; /* knappar, hover */
+  --color-mauve-500: #845162; /* accent, progress bar (INTE till text) */
+  --color-blush-300: #e3b6b1; /* highlights, ikoner */
+  --color-blush-100: #ffe3d8; /* huvudtext på mörk bakgrund */
+}
+
+/* Typsnitt kommer från next/font (se layout.tsx) */
+@theme inline {
+  --font-sans: var(--font-inter);
+  --font-serif: var(--font-playfair);
+}
+
+html {
+  background-color: var(--color-plum-950);
+}
+
+body {
+  min-height: 100dvh;
+  color: var(--color-blush-100);
+  font-family: var(--font-sans), system-ui, sans-serif;
+  /* Mjuk gradient från plum-950 till plum-900 */
+  background-image: linear-gradient(
+    160deg,
+    var(--color-plum-950) 0%,
+    var(--color-plum-900) 100%
+  );
+  background-attachment: fixed;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-serif), Georgia, serif;
+}
+
+/* Tydlig fokusram för tangentbord (bra kontrast mot mörk bakgrund) */
+:focus-visible {
+  outline: 3px solid var(--color-blush-300);
+  outline-offset: 3px;
+}
+
+/* Respektera "minska rörelse": nästan inga animationer */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
