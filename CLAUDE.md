@@ -164,3 +164,22 @@ Det är skräp. Committa dem aldrig. De ignoreras i `.gitignore`. Flytta projekt
 `csrf()` i index.ts ger 403 på POST utan `Content-Type` och utan `Origin` (så ser ett formulär från en annan sida ut).
 I Postman: välj Body → raw → JSON och skriv `{}` även när requesten inte behöver data (t.ex. `/auth/logout`).
 Webbläsaren skickar alltid `Origin`, så frontend påverkas inte. Frontendens `fetch` ska ändå skicka `Content-Type: application/json` på POST.
+
+## Frontend: mappstruktur (`frontend/`)
+
+```
+app/                    → sidor (Next.js App Router)
+├─ admin/login/         → /admin/login (öppen)
+└─ admin/(protected)/   → /admin och /admin/new. layout.tsx kollar inloggning (GET /auth/me)
+components/ui/          → små återanvändbara delar: button.tsx, text-field.tsx
+components/admin/       → delar för admin: campaign-form.tsx, copy-link-button.tsx
+lib/                    → api.ts (ALLA anrop till backend), types.ts, format.ts
+```
+
+Regler:
+- Alla anrop till backend går via `lib/api.ts`. `credentials: 'include'` och `Content-Type: application/json` på POST sätts där.
+- Admin-sidor är klientkomponenter (`'use client'`) så att webbläsaren skickar cookien.
+- Efter ett API-fel med status 401: skicka användaren till `/admin/login`.
+- Knappar: `<Button>` eller `buttonStyles()` på `<Link>`. Fält: `<TextField>` (visar alltid en synlig label).
+- `next.config.ts` har `cacheComponents: true` (från scaffolden). `instantInsights.validationLevel: "manual-warning"`
+  stänger av varningen om "instant navigation" för sidor som ritas i webbläsaren. Next.js 16 är nytt: läs `node_modules/next/dist/docs/` vid tvekan.
