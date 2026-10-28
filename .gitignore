@@ -1,0 +1,28 @@
+# --- Hemligheter (får ALDRIG pushas) ---
+.env
+.env.*
+!.env.example
+
+# --- Beroenden ---
+node_modules/
+
+# --- Byggfiler ---
+.next/
+out/
+dist/
+build/
+*.tsbuildinfo
+next-env.d.ts
+
+# --- Loggar ---
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# --- System och editor ---
+.DS_Store
+.vscode/
+.idea/
+
+# --- Claude Code (personliga inställningar) ---
+.claude/settings.local.json
