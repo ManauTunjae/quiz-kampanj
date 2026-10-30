@@ -9,6 +9,7 @@ import { requireAdmin } from './middleware/require-admin.js'
 import { adminCampaigns } from './routes/admin-campaigns.js'
 import { authRoutes } from './routes/auth.js'
 import { healthRoutes } from './routes/health.js'
+import { publicCampaigns } from './routes/public-campaigns.js'
 
 const app = new Hono()
 
@@ -30,6 +31,7 @@ app.use('*', csrf({ origin: env.frontendOrigin }))
 // Öppna routes
 app.route('/', healthRoutes)
 app.route('/auth', authRoutes)
+app.route('/api', publicCampaigns) // GET /api/campaigns/:slug (för besökare)
 
 // Allt under /api/admin kräver inloggning
 app.use('/api/admin/*', requireAdmin)
