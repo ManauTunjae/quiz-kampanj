@@ -170,9 +170,11 @@ Webbläsaren skickar alltid `Origin`, så frontend påverkas inte. Frontendens `
 ```
 app/                    → sidor (Next.js App Router)
 ├─ admin/login/         → /admin/login (öppen)
-└─ admin/(protected)/   → /admin och /admin/new. layout.tsx kollar inloggning (GET /auth/me)
+├─ admin/(protected)/   → /admin och /admin/new. layout.tsx kollar inloggning (GET /auth/me)
+└─ q/[slug]/            → /q/<slug>: publik quiz, ingen inloggning (en fråga i taget)
 components/ui/          → små återanvändbara delar: button.tsx, text-field.tsx
 components/admin/       → delar för admin: campaign-form.tsx, copy-link-button.tsx
+components/quiz/        → quiz-player.tsx (steg och tillstånd), question-view.tsx, progress-bar.tsx
 lib/                    → api.ts (ALLA anrop till backend), types.ts, format.ts
 ```
 
@@ -183,3 +185,13 @@ Regler:
 - Knappar: `<Button>` eller `buttonStyles()` på `<Link>`. Fält: `<TextField>` (visar alltid en synlig label).
 - `next.config.ts` har `cacheComponents: true` (från scaffolden). `instantInsights.validationLevel: "manual-warning"`
   stänger av varningen om "instant navigation" för sidor som ritas i webbläsaren. Next.js 16 är nytt: läs `node_modules/next/dist/docs/` vid tvekan.
+
+## Publik quiz (frontend)
+
+- Sidan `app/q/[slug]/page.tsx` är en serverkomponent. Med `cacheComponents` måste `await params` ligga i en `<Suspense>`.
+  Själva quizet är en klientkomponent (`QuizPlayer`) som hämtar `GET /api/campaigns/:slug`.
+- Svarsalternativen är riktiga radioknappar (visuellt dolda med `sr-only`). Då fungerar piltangenter och skärmläsare.
+- Animationer (`animate-slide-in`, `animate-slide-in-back`, `animate-fade-in`) ligger i `@theme` i `globals.css`.
+  `prefers-reduced-motion` stänger av dem globalt. Lägg aldrig animationer som ignorerar den regeln.
+- Egen CSS för element (h1–h3, `:focus-visible`) ska ligga i `@layer base`. Annars slår den Tailwind-klasser som `font-sans` och `outline-none`.
+- Kampanjens `accentColor` används bara till små dekorationer (t.ex. strecket ovanför titeln), aldrig till text.

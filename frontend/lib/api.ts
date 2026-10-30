@@ -1,4 +1,9 @@
-import type { CampaignSummary, CreatedCampaign, NewCampaignInput } from './types'
+import type {
+  CampaignSummary,
+  CreatedCampaign,
+  NewCampaignInput,
+  PublicCampaign,
+} from './types'
 
 // Alla anrop till backend går via den här filen.
 // Frontend pratar ALDRIG direkt med Supabase.
@@ -65,6 +70,14 @@ export function login(password: string) {
 
 export function logout() {
   return request<{ ok: true }>('/auth/logout', { method: 'POST' })
+}
+
+// ---------- Publik quiz (ingen inloggning) ----------
+export async function getPublicCampaign(slug: string): Promise<PublicCampaign> {
+  const data = await request<{ campaign: PublicCampaign }>(
+    `/api/campaigns/${encodeURIComponent(slug)}`
+  )
+  return data.campaign
 }
 
 // ---------- Kampanjer (admin) ----------
