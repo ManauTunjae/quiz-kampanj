@@ -26,3 +26,7 @@ yarn-error.log*
 
 # --- Claude Code (personliga inställningar) ---
 .claude/settings.local.json
+
+# --- iCloud-konfliktkopior (t.ex. "package 2.json") ---
+* 2
+* 2.*

@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { buttonStyles } from "@/components/ui/button";
 import HealthCheck from "./health-check";
 
 const swatches = [
@@ -43,6 +45,9 @@ export default function Home() {
         >
           Stor knapp (test)
         </button>
+        <Link href="/admin" className={`${buttonStyles("secondary")} w-full`}>
+          Till admin
+        </Link>
         <HealthCheck />
       </div>
     </main>
