@@ -84,6 +84,12 @@ Regler för inskickade svar:
 - Max 60 inskickningar per 10 min och IP (`lib/rate-limit.ts`) → annars 429 + `Retry-After`.
 - Postman: skicka Body → raw → JSON (annars stoppar csrf-skyddet med 403).
 
+Regler för dashboarden (admin):
+- `GET /api/admin/campaigns/:id/stats` och `GET /api/admin/campaigns/:id/leads?limit=100&offset=0` kräver inloggning.
+- Leads innehåller personuppgifter: svaret har `Cache-Control: no-store`, och e-post/namn loggas aldrig.
+- Antal räknas med `count` i databasen (inte genom att hämta alla rader). Leads hämtas i sidor (max 500).
+- Admin ser `isCorrect` per alternativ. Besökare ser det aldrig.
+
 Regler för leads (namn, e-post, samtycke):
 - Samtyckestexten finns på ETT ställe: `backend/src/lib/consent.ts`. Frontend visar texten som kommer i svaret från `POST .../submissions` (`consentText`) och skriver aldrig egen text.
 - Servern sparar samma text i `leads.consent_text`. Klienten kan inte bestämma text eller tid.
@@ -91,6 +97,11 @@ Regler för leads (namn, e-post, samtycke):
 - En lead per deltagare: andra försöket ger 409. Okänd deltagare ger 404.
 - Personuppgifter (namn, e-post) loggas aldrig och skickas aldrig tillbaka i svar.
 - Max 30 leads per 10 min och IP → annars 429.
+
+Regler för dashboarden (frontend):
+- Sidan `/admin/campaigns/[id]` ligger i `(protected)`: inloggning kontrolleras i layouten, och 401 från API:t skickar till `/admin/login`.
+- Staplarna är bara dekoration. Antal och procent står alltid som text, och rätt svar märks med texten "Rätt svar" (aldrig bara färg).
+- Leads hämtas 50 åt gången ("Visa fler"). E-post visas som `mailto:`-länk.
 
 Regler för resultatet (frontend):
 - Poängen kommer från servern. Frontend räknar aldrig själv.

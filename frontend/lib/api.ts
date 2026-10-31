@@ -6,6 +6,8 @@ import type {
   SubmissionResult,
   SubmittedAnswer,
   LeadInput,
+  CampaignStats,
+  LeadsPage,
 } from './types'
 
 // Alla anrop till backend går via den här filen.
@@ -103,6 +105,16 @@ export function saveLead(submissionId: string, input: LeadInput) {
 export async function listCampaigns(): Promise<CampaignSummary[]> {
   const data = await request<{ campaigns: CampaignSummary[] }>('/api/admin/campaigns')
   return data.campaigns
+}
+
+export function getCampaignStats(campaignId: string) {
+  return request<CampaignStats>(`/api/admin/campaigns/${encodeURIComponent(campaignId)}/stats`)
+}
+
+export function getCampaignLeads(campaignId: string, limit: number, offset: number) {
+  return request<LeadsPage>(
+    `/api/admin/campaigns/${encodeURIComponent(campaignId)}/leads?limit=${limit}&offset=${offset}`
+  )
 }
 
 export function createCampaign(input: NewCampaignInput) {
