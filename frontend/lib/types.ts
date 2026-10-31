@@ -21,6 +21,41 @@ export type SubmissionResult = {
 }
 export type LeadInput = { name: string; email: string; consent: boolean }
 
+// ---------- Admin-dashboard ----------
+export type StatsOption = {
+  id: string
+  position: number
+  text: string
+  isCorrect: boolean
+  count: number
+  percent: number
+}
+export type StatsQuestion = {
+  id: string
+  position: number
+  text: string
+  answerCount: number
+  options: StatsOption[]
+}
+export type CampaignStats = {
+  campaign: { id: string; slug: string; title: string; accentColor: string }
+  participantCount: number
+  leadCount: number
+  questionCount: number
+  averageScore: number | null
+  questions: StatsQuestion[]
+}
+export type LeadRow = {
+  id: string
+  name: string
+  email: string
+  score: number
+  total: number
+  consentAt: string
+  createdAt: string
+}
+export type LeadsPage = { total: number; limit: number; offset: number; leads: LeadRow[] }
+
 export type CampaignSummary = {
   id: string
   slug: string

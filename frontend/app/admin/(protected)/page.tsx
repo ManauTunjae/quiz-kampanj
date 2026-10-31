@@ -103,7 +103,12 @@ export default function AdminCampaignsPage() {
                   <p className="font-mono text-sm break-all text-blush-300">/q/{c.slug}</p>
                 </div>
               </div>
-              <CopyLinkButton slug={c.slug} />
+              <div className="flex flex-wrap gap-3">
+                <Link href={`/admin/campaigns/${c.id}`} className={buttonStyles('primary')}>
+                  Visa statistik
+                </Link>
+                <CopyLinkButton slug={c.slug} />
+              </div>
             </li>
           ))}
         </ul>
