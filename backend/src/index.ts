@@ -7,6 +7,7 @@ import { logger } from 'hono/logger'
 import { env } from './config/env.js'
 import { requireAdmin } from './middleware/require-admin.js'
 import { adminCampaigns } from './routes/admin-campaigns.js'
+import { adminDashboard } from './routes/admin-dashboard.js'
 import { authRoutes } from './routes/auth.js'
 import { healthRoutes } from './routes/health.js'
 import { publicCampaigns } from './routes/public-campaigns.js'
@@ -38,6 +39,7 @@ app.route('/api', publicSubmissions) // POST /api/submissions/:id/lead
 // Allt under /api/admin kräver inloggning
 app.use('/api/admin/*', requireAdmin)
 app.route('/api/admin', adminCampaigns)
+app.route('/api/admin', adminDashboard) // stats och leads
 
 // Alla oväntade fel hamnar här. Vi loggar detaljerna men visar dem inte för användaren.
 app.onError((err, c) => {
