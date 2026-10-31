@@ -5,6 +5,7 @@ import type {
   PublicCampaign,
   SubmissionResult,
   SubmittedAnswer,
+  LeadInput,
 } from './types'
 
 // Alla anrop till backend går via den här filen.
@@ -87,6 +88,14 @@ export function submitAnswers(slug: string, answers: SubmittedAnswer[]) {
   return request<SubmissionResult>(`/api/campaigns/${encodeURIComponent(slug)}/submissions`, {
     method: 'POST',
     body: { answers },
+  })
+}
+
+// Sparar namn, e-post och samtycke för en deltagare (efter quizet).
+export function saveLead(submissionId: string, input: LeadInput) {
+  return request<{ ok: true }>(`/api/submissions/${encodeURIComponent(submissionId)}/lead`, {
+    method: 'POST',
+    body: input,
   })
 }
 
