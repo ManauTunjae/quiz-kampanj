@@ -10,6 +10,7 @@ import { adminCampaigns } from './routes/admin-campaigns.js'
 import { authRoutes } from './routes/auth.js'
 import { healthRoutes } from './routes/health.js'
 import { publicCampaigns } from './routes/public-campaigns.js'
+import { publicSubmissions } from './routes/public-submissions.js'
 
 const app = new Hono()
 
@@ -32,6 +33,7 @@ app.use('*', csrf({ origin: env.frontendOrigin }))
 app.route('/', healthRoutes)
 app.route('/auth', authRoutes)
 app.route('/api', publicCampaigns) // GET /api/campaigns/:slug (för besökare)
+app.route('/api', publicSubmissions) // POST /api/submissions/:id/lead
 
 // Allt under /api/admin kräver inloggning
 app.use('/api/admin/*', requireAdmin)

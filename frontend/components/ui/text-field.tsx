@@ -9,12 +9,15 @@ export const inputStyles =
 type TextFieldProps = InputHTMLAttributes<HTMLInputElement> & {
   label: string
   hint?: string
+  error?: string
 }
 
 // Ett fält med synlig label (labeln är kopplad till fältet med id/htmlFor)
-export function TextField({ label, hint, className = '', ...props }: TextFieldProps) {
+export function TextField({ label, hint, error, className = '', ...props }: TextFieldProps) {
   const id = useId()
   const hintId = `${id}-hint`
+  const errorId = `${id}-error`
+  const describedBy = [hint && hintId, error && errorId].filter(Boolean).join(' ') || undefined
 
   return (
     <div className="space-y-2">
@@ -28,10 +31,17 @@ export function TextField({ label, hint, className = '', ...props }: TextFieldPr
       )}
       <input
         id={id}
-        aria-describedby={hint ? hintId : undefined}
-        className={`${inputStyles} ${className}`}
+        aria-describedby={describedBy}
+        aria-invalid={error ? true : undefined}
+        className={`${inputStyles} ${error ? 'border-blush-100 border-2' : ''} ${className}`}
         {...props}
       />
+      {error && (
+        <p id={errorId} className="text-sm font-medium text-blush-100">
+          <span aria-hidden="true">⚠ </span>
+          {error}
+        </p>
+      )}
     </div>
   )
 }

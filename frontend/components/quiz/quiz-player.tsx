@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Confetti } from '@/components/quiz/confetti'
+import { LeadForm } from '@/components/quiz/lead-form'
 import { ProgressBar } from '@/components/quiz/progress-bar'
 import { QuestionView } from '@/components/quiz/question-view'
 import { ResultCard } from '@/components/quiz/result-card'
@@ -210,7 +211,7 @@ function Quiz({ campaign }: { campaign: PublicCampaign }) {
             accent={accent}
             headingRef={headingRef}
           />
-          {/* Lead-formulär (namn, e-post, GDPR) byggs i nästa feature. */}
+          <LeadForm key={result.submissionId} submissionId={result.submissionId} consentText={result.consentText} />
           <Button variant="secondary" onClick={restart}>
             Börja om
           </Button>

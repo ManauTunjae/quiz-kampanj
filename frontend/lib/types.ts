@@ -13,7 +13,13 @@ export type PublicCampaign = {
 
 // Besökarens svar som skickas in, och resultatet som servern räknat ut.
 export type SubmittedAnswer = { questionId: string; optionId: string }
-export type SubmissionResult = { submissionId: string; score: number; total: number }
+export type SubmissionResult = {
+  submissionId: string
+  score: number
+  total: number
+  consentText: string // samtyckestexten kommer från servern (visas bredvid rutan)
+}
+export type LeadInput = { name: string; email: string; consent: boolean }
 
 export type CampaignSummary = {
   id: string

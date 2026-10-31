@@ -84,6 +84,14 @@ Regler för inskickade svar:
 - Max 60 inskickningar per 10 min och IP (`lib/rate-limit.ts`) → annars 429 + `Retry-After`.
 - Postman: skicka Body → raw → JSON (annars stoppar csrf-skyddet med 403).
 
+Regler för leads (namn, e-post, samtycke):
+- Samtyckestexten finns på ETT ställe: `backend/src/lib/consent.ts`. Frontend visar texten som kommer i svaret från `POST .../submissions` (`consentText`) och skriver aldrig egen text.
+- Servern sparar samma text i `leads.consent_text`. Klienten kan inte bestämma text eller tid.
+- `consent` måste vara exakt `true`. Namn och e-post trimmas, e-post görs till gemener.
+- En lead per deltagare: andra försöket ger 409. Okänd deltagare ger 404.
+- Personuppgifter (namn, e-post) loggas aldrig och skickas aldrig tillbaka i svar.
+- Max 30 leads per 10 min och IP → annars 429.
+
 Regler för resultatet (frontend):
 - Poängen kommer från servern. Frontend räknar aldrig själv.
 - Konfetti ritas på canvas (`components/quiz/confetti.tsx`, inga extra paket) i palettens färger.

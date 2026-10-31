@@ -1,5 +1,6 @@
 import { zValidator } from '@hono/zod-validator'
 import { Hono, type Context } from 'hono'
+import { CONSENT_TEXT } from '../lib/consent.js'
 import { clientKey } from '../lib/client-key.js'
 import { createRateLimiter } from '../lib/rate-limit.js'
 import { getPublicCampaign } from '../services/public-campaign-service.js'
@@ -50,6 +51,15 @@ publicCampaigns.post(
         : c.json({ error: 'Svaren stämmer inte med kampanjen' }, 400)
     }
 
-    return c.json({ submissionId: result.submissionId, score: result.score, total: result.total }, 201)
+    // consentText: texten som visas bredvid samtyckesrutan i lead-formuläret
+    return c.json(
+      {
+        submissionId: result.submissionId,
+        score: result.score,
+        total: result.total,
+        consentText: CONSENT_TEXT,
+      },
+      201
+    )
   }
 )
