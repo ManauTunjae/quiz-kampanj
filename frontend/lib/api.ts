@@ -3,6 +3,8 @@ import type {
   CreatedCampaign,
   NewCampaignInput,
   PublicCampaign,
+  SubmissionResult,
+  SubmittedAnswer,
 } from './types'
 
 // Alla anrop till backend går via den här filen.
@@ -78,6 +80,14 @@ export async function getPublicCampaign(slug: string): Promise<PublicCampaign> {
     `/api/campaigns/${encodeURIComponent(slug)}`
   )
   return data.campaign
+}
+
+// Skickar alla svar. Servern räknar poängen och svarar med resultatet.
+export function submitAnswers(slug: string, answers: SubmittedAnswer[]) {
+  return request<SubmissionResult>(`/api/campaigns/${encodeURIComponent(slug)}/submissions`, {
+    method: 'POST',
+    body: { answers },
+  })
 }
 
 // ---------- Kampanjer (admin) ----------

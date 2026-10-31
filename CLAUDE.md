@@ -77,6 +77,18 @@ Publikt:
 - `POST /api/campaigns/:slug/submissions` – alla svar → `{ submissionId, score, total }`
 - `POST /api/submissions/:id/lead` – `{ name, email, consent }`
 
+Regler för inskickade svar:
+- Poängen räknas ALLTID på servern. Frontend skickar bara `questionId` + `optionId`.
+- Rätt svar (`is_correct`) lämnar aldrig servern, inte ens efter att quizet är klart.
+- Exakt ett svar per fråga, och alternativet måste höra till frågan, annars 400.
+- Max 60 inskickningar per 10 min och IP (`lib/rate-limit.ts`) → annars 429 + `Retry-After`.
+- Postman: skicka Body → raw → JSON (annars stoppar csrf-skyddet med 403).
+
+Regler för resultatet (frontend):
+- Poängen kommer från servern. Frontend räknar aldrig själv.
+- Konfetti ritas på canvas (`components/quiz/confetti.tsx`, inga extra paket) i palettens färger.
+- Med "minska rörelse" (`prefers-reduced-motion`) visas ingen konfetti och `animate-pop` är nästan avstängd.
+
 Auth:
 - `POST /auth/login`, `POST /auth/logout`, `GET /auth/me`
 
@@ -124,74 +136,3 @@ Animationer:
 - Fade/slide mellan frågor. Progress bar som fylls.
 - Slutet: konfetti i palettens färger + resultatkort med mjuk scale ("pop").
 - Respektera `prefers-reduced-motion`: ingen konfetti, inga stora rörelser.
-
-## API-regler
-
-- JSON-fält är i `camelCase` (t.ex. `accentColor`), databasens kolumner i `snake_case`.
-- Fel returneras som `{ "error": "text på svenska" }`. Valideringsfel har också `issues: [{ path, message }]`.
-- Statuskoder: 200/201 OK, 400 ogiltig data, 401 inte inloggad, 429 för många inloggningsförsök, 500 serverfel.
-- Admin-login har en enkel spärr: max 5 fel lösenord per 15 minuter per IP (i minnet).
-
-## Backend: mappstruktur (`backend/src`)
-
-```
-src/
-├─ index.ts          → startar appen: middleware, routes, felhantering, serve()
-├─ config/env.ts     → ALLA miljövariabler (env). Använd aldrig process.env någon annanstans
-├─ database/         → databaskopplingen (supabase.ts)
-├─ routes/           → URL:er. Tunna: ta emot, validera, anropa service, svara
-├─ services/         → affärslogik och databasfrågor (t.ex. campaign-service.ts)
-├─ validation/       → zod-scheman (+ hook.ts för gemensamt 400-svar)
-├─ middleware/       → t.ex. require-admin.ts
-├─ lib/              → delar med tillstånd/integration: session (cookie), login-limiter
-└─ utils/            → små rena hjälpfunktioner: slugify, password
-```
-
-Regler:
-- En fil gör en sak. Ny feature = ny route-fil + ny service-fil + nytt valideringsschema.
-- Services kastar `Error` vid fel. `app.onError` i index.ts svarar 500. Routes har ingen try/catch.
-- SQL-filer ligger utanför `src`, i `backend/db/` (schema.sql, seed.sql).
-- Importer har filändelsen `.js` (t.ex. `'../lib/session.js'`), även om filen är `.ts`.
-- Frontend (`frontend/`) följer Next.js egen struktur. Delade hjälpfunktioner till `frontend/lib/`.
-
-## Filer med " 2" i namnet
-
-Mappen ligger på Skrivbordet, och iCloud kan skapa kopior som `package 2.json`.
-Det är skräp. Committa dem aldrig. De ignoreras i `.gitignore`. Flytta projektet utanför iCloud.
-
-## Postman och POST utan body
-
-`csrf()` i index.ts ger 403 på POST utan `Content-Type` och utan `Origin` (så ser ett formulär från en annan sida ut).
-I Postman: välj Body → raw → JSON och skriv `{}` även när requesten inte behöver data (t.ex. `/auth/logout`).
-Webbläsaren skickar alltid `Origin`, så frontend påverkas inte. Frontendens `fetch` ska ändå skicka `Content-Type: application/json` på POST.
-
-## Frontend: mappstruktur (`frontend/`)
-
-```
-app/                    → sidor (Next.js App Router)
-├─ admin/login/         → /admin/login (öppen)
-├─ admin/(protected)/   → /admin och /admin/new. layout.tsx kollar inloggning (GET /auth/me)
-└─ q/[slug]/            → /q/<slug>: publik quiz, ingen inloggning (en fråga i taget)
-components/ui/          → små återanvändbara delar: button.tsx, text-field.tsx
-components/admin/       → delar för admin: campaign-form.tsx, copy-link-button.tsx
-components/quiz/        → quiz-player.tsx (steg och tillstånd), question-view.tsx, progress-bar.tsx
-lib/                    → api.ts (ALLA anrop till backend), types.ts, format.ts
-```
-
-Regler:
-- Alla anrop till backend går via `lib/api.ts`. `credentials: 'include'` och `Content-Type: application/json` på POST sätts där.
-- Admin-sidor är klientkomponenter (`'use client'`) så att webbläsaren skickar cookien.
-- Efter ett API-fel med status 401: skicka användaren till `/admin/login`.
-- Knappar: `<Button>` eller `buttonStyles()` på `<Link>`. Fält: `<TextField>` (visar alltid en synlig label).
-- `next.config.ts` har `cacheComponents: true` (från scaffolden). `instantInsights.validationLevel: "manual-warning"`
-  stänger av varningen om "instant navigation" för sidor som ritas i webbläsaren. Next.js 16 är nytt: läs `node_modules/next/dist/docs/` vid tvekan.
-
-## Publik quiz (frontend)
-
-- Sidan `app/q/[slug]/page.tsx` är en serverkomponent. Med `cacheComponents` måste `await params` ligga i en `<Suspense>`.
-  Själva quizet är en klientkomponent (`QuizPlayer`) som hämtar `GET /api/campaigns/:slug`.
-- Svarsalternativen är riktiga radioknappar (visuellt dolda med `sr-only`). Då fungerar piltangenter och skärmläsare.
-- Animationer (`animate-slide-in`, `animate-slide-in-back`, `animate-fade-in`) ligger i `@theme` i `globals.css`.
-  `prefers-reduced-motion` stänger av dem globalt. Lägg aldrig animationer som ignorerar den regeln.
-- Egen CSS för element (h1–h3, `:focus-visible`) ska ligga i `@layer base`. Annars slår den Tailwind-klasser som `font-sans` och `outline-none`.
-- Kampanjens `accentColor` används bara till små dekorationer (t.ex. strecket ovanför titeln), aldrig till text.

@@ -11,6 +11,10 @@ export type PublicCampaign = {
   questions: PublicQuestion[]
 }
 
+// Besökarens svar som skickas in, och resultatet som servern räknat ut.
+export type SubmittedAnswer = { questionId: string; optionId: string }
+export type SubmissionResult = { submissionId: string; score: number; total: number }
+
 export type CampaignSummary = {
   id: string
   slug: string
