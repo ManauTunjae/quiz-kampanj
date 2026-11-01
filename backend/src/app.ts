@@ -1,0 +1,54 @@
+// Själva appen (alla routes och skydd). Startas av index.ts.
+// Tester importerar den här filen och anropar app.request(...) utan att starta någon server.
+import { Hono } from 'hono'
+import { cors } from 'hono/cors'
+import { csrf } from 'hono/csrf'
+import { HTTPException } from 'hono/http-exception'
+import { logger } from 'hono/logger'
+import { env } from './config/env.js'
+import { requireUser } from './middleware/require-user.js'
+import { adminCampaigns } from './routes/admin-campaigns.js'
+import { adminDashboard } from './routes/admin-dashboard.js'
+import { authRoutes } from './routes/auth.js'
+import { healthRoutes } from './routes/health.js'
+import { publicCampaigns } from './routes/public-campaigns.js'
+import { publicSubmissions } from './routes/public-submissions.js'
+
+export const app = new Hono()
+
+// Viktigt: cors() ligger FÖRST, före alla routes och före auth.
+// credentials: true behövs för cookies. Då får origin inte vara "*".
+app.use('*', logger())
+app.use(
+  '*',
+  cors({
+    origin: env.frontendOrigin,
+    credentials: true,
+    allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowHeaders: ['Content-Type'],
+    // Så att frontend kan läsa filnamnet vid nedladdning av CSV
+    exposeHeaders: ['Content-Disposition'],
+  })
+)
+// Skydd mot att andra webbplatser skickar formulär till oss med din cookie.
+app.use('*', csrf({ origin: env.frontendOrigin }))
+
+// Öppna routes
+app.route('/', healthRoutes)
+app.route('/auth', authRoutes)
+app.route('/api', publicCampaigns) // GET /api/campaigns/:slug (för besökare)
+app.route('/api', publicSubmissions) // POST /api/submissions/:id/lead
+
+// Allt under /api/admin kräver inloggning
+app.use('/api/admin/*', requireUser)
+app.route('/api/admin', adminCampaigns)
+app.route('/api/admin', adminDashboard) // stats och leads
+
+// Alla oväntade fel hamnar här. Vi loggar detaljerna men visar dem inte för användaren.
+app.onError((err, c) => {
+  // Fel som Hono själv skapar med en tänkt statuskod (t.ex. 403 från csrf) behåller den.
+  if (err instanceof HTTPException) return err.getResponse()
+
+  console.error(err)
+  return c.json({ error: 'Något gick fel på servern' }, 500)
+})

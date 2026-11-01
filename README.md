@@ -102,7 +102,9 @@ Servern startar inte om något viktigt värde saknas. Då visas ett tydligt felm
 quiz-kampanj/
 ├── backend/
 │   ├── db/               schema.sql, seed.sql och migrations/ (körs i Supabase)
+│   ├── tests/            automatiska tester (Vitest)
 │   └── src/
+│       ├── app.ts        bygger appen (routes, cors, skydd). index.ts startar den.
 │       ├── config/       miljövariabler
 │       ├── database/     Supabase-klienten
 │       ├── routes/       tunna routes (ta emot, validera, svara)
@@ -112,6 +114,7 @@ quiz-kampanj/
 │       ├── lib/          sessionscookie, spärrar mot spam, samtyckestext
 │       └── utils/        små hjälpfunktioner
 ├── frontend/
+│   ├── tests/            automatiska tester (Vitest)
 │   ├── app/              sidor (/admin, /q/[slug])
 │   ├── components/       ui/, quiz/, admin/
 │   └── lib/              api.ts (alla anrop till backend), types.ts, format.ts
@@ -191,6 +194,29 @@ Admin (kräver inloggning):
 | Konstiga fel efter `git pull` | Kör `npm run install:all` igen |
 | Port 3000 eller 8000 är upptagen | Stäng den gamla processen |
 
+## Automatiska tester
+
+Testerna kontrollerar att viktiga saker alltid fungerar, utan att du behöver klicka i Postman. De använder **aldrig** din riktiga `.env` eller din riktiga Supabase (de har egna låtsasvärden i `vitest.config.ts`).
+
+```bash
+npm test                      # alla tester (backend + frontend), från rotmappen
+npm test --prefix backend     # bara backend
+npm test --prefix frontend    # bara frontend
+npm run test:watch --prefix backend   # kör om testerna varje gång du sparar
+```
+
+Vad testas:
+- **Backend, enhet** (`backend/tests/unit`): CSV-skyddet mot formler, slugify, spärrarna mot spam, alla valideringsregler.
+- **Backend, services** (`backend/tests/services`): poängräkning på servern, pausad kampanj, rätt svar läcker aldrig till besökaren. Databasen byts mot en låtsasversion (`tests/helpers/fake-supabase.ts`).
+- **Backend, routes** (`backend/tests/routes`): alla admin-adresser ger 401 utan inloggning, ägarskap (annans kampanj ger 404), CORS, csrf, CSV-rubriker, 410 vid pausad kampanj, inloggning, spärrar, glömt lösenord. Services byts mot låtsasfunktioner.
+- **Frontend** (`frontend/tests`): hjälpfunktioner och knappen "Är du säker?" (ConfirmDelete).
+
+Tester som INTE finns ännu: riktig Supabase (inloggning, mejl) och hela flödet i en riktig webbläsare. De testar du själv i Postman och webbläsaren.
+
+**Ny admin-route?** Lägg in den i listan `adminRoutes` i `backend/tests/routes/security.test.ts`, så vet du att den kräver inloggning.
+
+På GitHub kör `.github/workflows/ci.yml` typkontroll, lint och tester automatiskt vid varje pull request.
+
 ## Så jobbar vi (git)
 
 - En feature = en branch = en pull request (backend och frontend i samma PR).
@@ -212,6 +238,7 @@ Klart:
 - Glömt lösenord, e-postbekräftelse och "skicka mejlet igen" (kräver mejlmallarna i Supabase, se avsnittet E-post)
 - Redigera kampanj (titel, färg, texter) och pausa/aktivera den
 - Export av leads till CSV (öppnas i Excel)
+- Automatiska tester (Vitest) och CI på GitHub
 
 På gång / idéer:
 - Publicering (deploy)
