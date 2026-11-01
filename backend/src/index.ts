@@ -25,6 +25,8 @@ app.use(
     credentials: true,
     allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowHeaders: ['Content-Type'],
+    // Så att frontend kan läsa filnamnet vid nedladdning av CSV
+    exposeHeaders: ['Content-Disposition'],
   })
 )
 // Skydd mot att andra webbplatser skickar formulär till oss med din cookie.

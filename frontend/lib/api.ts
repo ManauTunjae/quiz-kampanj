@@ -167,3 +167,40 @@ export function deleteCampaign(campaignId: string) {
     method: 'DELETE',
   })
 }
+
+// ---------- Exportera leads till CSV (admin) ----------
+// Filen är inte JSON, så vi hämtar den själva och sparar den via en tillfällig länk.
+// Cookien skickas med (credentials: 'include'). Filnamnet kommer från backend.
+export async function downloadLeadsCsv(campaignId: string): Promise<string> {
+  let res: Response
+  try {
+    res = await fetch(`${API_URL}/api/admin/campaigns/${encodeURIComponent(campaignId)}/leads.csv`, {
+      credentials: 'include',
+    })
+  } catch {
+    throw new ApiError(0, 'Kan inte nå servern. Kör backend på port 8000?')
+  }
+
+  if (!res.ok) {
+    let message = 'Något gick fel'
+    try {
+      message = ((await res.json()) as { error?: string }).error ?? message
+    } catch {
+      // svaret var inte JSON
+    }
+    throw new ApiError(res.status, message)
+  }
+
+  const blob = await res.blob()
+  const filename = /filename="([^"]+)"/.exec(res.headers.get('Content-Disposition') ?? '')?.[1] ?? 'leads.csv'
+
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = filename
+  document.body.append(link)
+  link.click()
+  link.remove()
+  setTimeout(() => URL.revokeObjectURL(url), 1000)
+  return filename
+}

@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { CopyLinkButton } from '@/components/admin/copy-link-button'
+import { ExportLeadsButton } from '@/components/admin/export-leads-button'
 import { ConfirmDelete } from '@/components/admin/confirm-delete'
 import { LeadsList } from '@/components/admin/leads-list'
 import { QuestionStats } from '@/components/admin/question-stats'
@@ -230,6 +231,7 @@ export function CampaignDashboard({ campaignId }: { campaignId: string }) {
         <h2 id="leads-heading" className="text-2xl text-blush-100">
           Leads
         </h2>
+        {stats.leadCount > 0 && <ExportLeadsButton campaignId={campaignId} onUnauthorized={goToLogin} />}
         <LeadsList campaignId={campaignId} onUnauthorized={goToLogin} onLeadDeleted={onLeadDeleted} />
       </section>
 
