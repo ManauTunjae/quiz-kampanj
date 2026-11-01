@@ -14,6 +14,7 @@ import type { PublicCampaign, SubmissionResult } from '@/lib/types'
 type Load =
   | { status: 'loading' }
   | { status: 'notfound' }
+  | { status: 'paused' }
   | { status: 'error'; message: string }
   | { status: 'ready'; campaign: PublicCampaign }
 
@@ -44,6 +45,8 @@ export function QuizPlayer({ slug }: { slug: string }) {
         if (!active) return
         if (err instanceof ApiError && err.status === 404) {
           setLoad({ status: 'notfound' })
+        } else if (err instanceof ApiError && err.status === 410) {
+          setLoad({ status: 'paused' }) // 410 = kampanjen är pausad
         } else {
           setLoad({
             status: 'error',
@@ -72,6 +75,17 @@ export function QuizPlayer({ slug }: { slug: string }) {
         <div className="my-auto space-y-4 text-center">
           <h1 className="text-3xl text-blush-100">Den här kampanjen finns inte</h1>
           <p className="text-blush-300">Kontrollera att länken är rätt, eller fråga den som skickade den.</p>
+        </div>
+      </Shell>
+    )
+  }
+
+  if (load.status === 'paused') {
+    return (
+      <Shell>
+        <div className="my-auto space-y-4 text-center">
+          <h1 className="text-3xl text-blush-100">Quizet är pausat just nu</h1>
+          <p className="text-blush-300">Kom tillbaka lite senare, eller fråga den som skickade länken.</p>
         </div>
       </Shell>
     )

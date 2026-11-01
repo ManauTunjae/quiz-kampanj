@@ -132,6 +132,19 @@ Admin (kräver cookie):
 - `GET /api/admin/campaigns`, `POST /api/admin/campaigns`
 - `GET /api/admin/campaigns/:id/stats`, `GET /api/admin/campaigns/:id/leads`
 
+### Ändra och pausa kampanj
+- `PATCH /api/admin/campaigns/:id` ändrar titel, färg, `isActive` och TEXTER. Slug (den publika länken) ändras aldrig.
+- Antal frågor, antal alternativ och vilket svar som är rätt går INTE att ändra. Annars stämmer inte gamla poäng och statistik. Frågor och alternativ skickas med sina id:n, och de måste vara exakt de som finns.
+- `strictObject` i zod: okända fält (t.ex. `isCorrect`, `slug`) ger 400.
+- Pausad kampanj (`is_active = false`): publik GET och inskick av svar ger **410**, utan frågor. Den som redan svarat kan fortfarande spara sin lead. Data finns kvar.
+- CORS måste tillåta `PATCH` (finns i `index.ts`).
+
+### Radera data (GDPR)
+- `DELETE /api/admin/campaigns/:id/leads/:leadId` raderar bara leaden (namn och e-post). Deltagaren och svaren är anonyma och finns kvar.
+- `DELETE /api/admin/campaigns/:id` raderar kampanjen. Databasen raderar resten via `on delete cascade`.
+- Båda kollar ägaren. Någon annans data ger 404 (samma som "finns inte"). Logga aldrig personuppgifter.
+- Frontend ska alltid fråga "Är du säker?" före radering.
+
 ## Datamodell (Supabase)
 
 - `campaigns`: id, slug (unik), title, accent_color, owner_id (→ auth.users), created_at

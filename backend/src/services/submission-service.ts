@@ -6,7 +6,7 @@ import type { SubmitAnswersInput } from '../validation/submission.js'
 
 export type SubmitResult =
   | { ok: true; submissionId: string; score: number; total: number }
-  | { ok: false; reason: 'not_found' }
+  | { ok: false; reason: 'not_found' | 'paused' }
   | { ok: false; reason: 'invalid_answers' }
 
 export async function submitAnswers(
@@ -16,12 +16,13 @@ export async function submitAnswers(
   // 1) Hämta kampanjen med frågor, alternativ och vilka som är rätt
   const { data: campaign, error } = await supabase
     .from('campaigns')
-    .select('id, questions(id, options(id, is_correct))')
+    .select('id, is_active, questions(id, options(id, is_correct))')
     .eq('slug', slug)
     .maybeSingle()
 
   if (error) throw new Error(`Kunde inte hämta kampanj: ${error.message}`)
   if (!campaign) return { ok: false, reason: 'not_found' }
+  if (campaign.is_active === false) return { ok: false, reason: 'paused' }
 
   // frågans id → (alternativets id → är det rätt?)
   const correctness = new Map<string, Map<string, boolean>>()

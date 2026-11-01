@@ -2,13 +2,13 @@
 
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { CopyLinkButton } from '@/components/admin/copy-link-button'
 import { ConfirmDelete } from '@/components/admin/confirm-delete'
 import { LeadsList } from '@/components/admin/leads-list'
 import { QuestionStats } from '@/components/admin/question-stats'
-import { Button } from '@/components/ui/button'
-import { ApiError, deleteCampaign, getCampaignStats } from '@/lib/api'
+import { Button, buttonStyles } from '@/components/ui/button'
+import { ApiError, deleteCampaign, getCampaignStats, updateCampaign } from '@/lib/api'
 import { formatNumber } from '@/lib/format'
 import type { CampaignStats } from '@/lib/types'
 
@@ -34,6 +34,14 @@ export function CampaignDashboard({ campaignId }: { campaignId: string }) {
   const [state, setState] = useState<State>({ status: 'loading' })
   const [attempt, setAttempt] = useState(0)
   const goToLogin = useCallback(() => router.replace('/admin/login'), [router])
+  const [toggling, setToggling] = useState(false)
+  const [toggleMessage, setToggleMessage] = useState<string | null>(null)
+  const [toggleError, setToggleError] = useState<string | null>(null)
+  const toggleMsgRef = useRef<HTMLParagraphElement>(null)
+
+  useEffect(() => {
+    if (toggleMessage) toggleMsgRef.current?.focus()
+  }, [toggleMessage])
 
   useEffect(() => {
     let active = true
@@ -97,6 +105,30 @@ export function CampaignDashboard({ campaignId }: { campaignId: string }) {
 
   const { stats } = state
 
+  // Pausa eller aktivera. Går att ångra, så ingen "Är du säker?" behövs.
+  async function toggleActive() {
+    if (toggling) return // skydd mot dubbelklick
+    const makeActive = !stats.campaign.isActive
+    setToggling(true)
+    setToggleError(null)
+    try {
+      const updated = await updateCampaign(campaignId, { isActive: makeActive })
+      setState((prev) =>
+        prev.status === 'ready'
+          ? { status: 'ready', stats: { ...prev.stats, campaign: { ...prev.stats.campaign, isActive: updated.isActive } } }
+          : prev
+      )
+      setToggleMessage(
+        updated.isActive ? 'Kampanjen är aktiv igen.' : 'Kampanjen är pausad. Besökare ser ett meddelande i stället för quizet.'
+      )
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 401) return goToLogin()
+      setToggleError(err instanceof ApiError ? err.message : 'Något gick fel. Försök igen.')
+    } finally {
+      setToggling(false)
+    }
+  }
+
   async function removeCampaign() {
     try {
       await deleteCampaign(campaignId)
@@ -131,9 +163,35 @@ export function CampaignDashboard({ campaignId }: { campaignId: string }) {
           <div className="min-w-0 space-y-1">
             <h1 className="text-3xl break-words text-blush-100">{stats.campaign.title}</h1>
             <p className="font-mono text-sm break-all text-blush-300">/q/{stats.campaign.slug}</p>
+            {!stats.campaign.isActive && (
+              <p className="inline-block rounded-full border border-blush-300 px-3 py-1 text-sm text-blush-100">
+                ⏸ Pausad
+              </p>
+            )}
           </div>
         </div>
-        <CopyLinkButton slug={stats.campaign.slug} />
+        {!stats.campaign.isActive && (
+          <p className="text-blush-300">Kampanjen är pausad. Besökare kan inte svara just nu.</p>
+        )}
+        <div className="flex flex-wrap gap-3">
+          <CopyLinkButton slug={stats.campaign.slug} />
+          <Link href={`/admin/campaigns/${stats.campaign.id}/edit`} className={buttonStyles('secondary')}>
+            Redigera
+          </Link>
+          <Button variant="secondary" onClick={toggleActive} disabled={toggling}>
+            {toggling ? 'Sparar…' : stats.campaign.isActive ? 'Pausa kampanjen' : 'Aktivera kampanjen'}
+          </Button>
+        </div>
+        {toggleMessage && (
+          <p ref={toggleMsgRef} tabIndex={-1} role="status" className="text-blush-100">
+            {toggleMessage}
+          </p>
+        )}
+        {toggleError && (
+          <p role="alert" className="text-blush-100">
+            ⚠ {toggleError}
+          </p>
+        )}
       </div>
 
       <section aria-labelledby="summary-heading" className="space-y-4">

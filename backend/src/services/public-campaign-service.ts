@@ -8,17 +8,20 @@ import { supabase } from '../database/supabase.js'
 
 const byPosition = (a: { position: number }, b: { position: number }) => a.position - b.position
 
+// Returnerar null om kampanjen inte finns, { paused: true, title } om den är pausad.
 export async function getPublicCampaign(slug: string) {
   const { data, error } = await supabase
     .from('campaigns')
-    .select('id, slug, title, accent_color, questions(id, position, text, options(id, position, text))')
+    .select('id, slug, title, accent_color, is_active, questions(id, position, text, options(id, position, text))')
     .eq('slug', slug)
     .maybeSingle()
 
   if (error) throw new Error(`Kunde inte hämta kampanj: ${error.message}`)
   if (!data) return null // finns inte
+  if (data.is_active === false) return { paused: true as const, title: data.title } // pausad: inga frågor skickas
 
   return {
+    paused: false as const,
     id: data.id,
     slug: data.slug,
     title: data.title,

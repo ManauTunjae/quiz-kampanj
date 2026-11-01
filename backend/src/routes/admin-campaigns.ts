@@ -2,7 +2,8 @@ import { zValidator } from '@hono/zod-validator'
 import { Hono, type Context } from 'hono'
 import type { AuthEnv } from '../middleware/require-user.js'
 import { createCampaign, listCampaigns } from '../services/campaign-service.js'
-import { createCampaignSchema } from '../validation/campaign.js'
+import { getCampaignDetail, updateCampaign } from '../services/campaign-edit-service.js'
+import { createCampaignSchema, updateCampaignSchema } from '../validation/campaign.js'
 import { campaignIdParamSchema } from '../validation/dashboard.js'
 import { deleteCampaign } from '../services/delete-service.js'
 import { onInvalid } from '../validation/hook.js'
@@ -36,3 +37,27 @@ adminCampaigns.delete('/campaigns/:id', zValidator('param', campaignIdParamSchem
   if (!deleted) return c.json({ error: 'Kampanjen finns inte' }, 404)
   return c.json({ ok: true })
 })
+
+// GET /api/admin/campaigns/:id → hela kampanjen med rätt svar (för redigeringsformuläret)
+adminCampaigns.get('/campaigns/:id', zValidator('param', campaignIdParamSchema, idHook), async (c) => {
+  const campaign = await getCampaignDetail(c.req.valid('param').id, c.get('user').id)
+  if (!campaign) return c.json({ error: 'Kampanjen finns inte' }, 404)
+  c.header('Cache-Control', 'no-store')
+  return c.json({ campaign })
+})
+
+// PATCH /api/admin/campaigns/:id → ändra titel, färg, pausad/aktiv och texter
+adminCampaigns.patch(
+  '/campaigns/:id',
+  zValidator('param', campaignIdParamSchema, idHook),
+  zValidator('json', updateCampaignSchema, onInvalid),
+  async (c) => {
+    const result = await updateCampaign(c.req.valid('param').id, c.get('user').id, c.req.valid('json'))
+    if (!result.ok) {
+      return result.reason === 'not_found'
+        ? c.json({ error: 'Kampanjen finns inte' }, 404)
+        : c.json({ error: 'Frågorna stämmer inte med kampanjen. Ladda om sidan och försök igen.' }, 400)
+    }
+    return c.json({ campaign: result.campaign })
+  }
+)

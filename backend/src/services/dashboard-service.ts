@@ -22,7 +22,7 @@ export async function getCampaignStats(campaignId: string, ownerId: string) {
   const { data: campaign, error } = await supabase
     .from('campaigns')
     .select(
-      'id, slug, title, accent_color, questions(id, position, text, options(id, position, text, is_correct))'
+      'id, slug, title, accent_color, is_active, questions(id, position, text, options(id, position, text, is_correct))'
     )
     .eq('id', campaignId)
     .eq('owner_id', ownerId)
@@ -86,6 +86,7 @@ export async function getCampaignStats(campaignId: string, ownerId: string) {
       slug: campaign.slug,
       title: campaign.title,
       accentColor: campaign.accent_color,
+      isActive: campaign.is_active !== false,
     },
     participantCount,
     leadCount,

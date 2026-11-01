@@ -133,6 +133,11 @@ export default function AdminCampaignsPage() {
                     {formatDate(c.createdAt)}
                   </p>
                   <p className="font-mono text-sm break-all text-blush-300">/q/{c.slug}</p>
+                  {!c.isActive && (
+                    <p className="inline-block rounded-full border border-blush-300 px-3 py-1 text-sm text-blush-100">
+                      ⏸ Pausad
+                    </p>
+                  )}
                 </div>
               </div>
               <div className="flex flex-wrap gap-3">
@@ -140,6 +145,9 @@ export default function AdminCampaignsPage() {
                   Visa statistik
                 </Link>
                 <CopyLinkButton slug={c.slug} />
+                <Link href={`/admin/campaigns/${c.id}/edit`} className={buttonStyles('secondary')}>
+                  Redigera
+                </Link>
                 <ConfirmDelete
                   label="Radera"
                   ariaLabel={`Radera kampanjen ${c.title}`}
