@@ -7,6 +7,8 @@ import type {
   SubmittedAnswer,
   LeadInput,
   CampaignStats,
+  CampaignDetail,
+  UpdateCampaignInput,
   LeadsPage,
   MeResponse,
   RegisterResponse,
@@ -33,7 +35,7 @@ export class ApiError extends Error {
 
 async function request<T>(
   path: string,
-  options: { method?: 'GET' | 'POST' | 'DELETE'; body?: unknown } = {}
+  options: { method?: 'GET' | 'POST' | 'PATCH' | 'DELETE'; body?: unknown } = {}
 ): Promise<T> {
   const method = options.method ?? 'GET'
   let res: Response
@@ -43,7 +45,7 @@ async function request<T>(
       method,
       // Utan "include" skickar webbläsaren inte admin-cookien till port 8000.
       credentials: 'include',
-      // Backend kräver Content-Type på POST och DELETE (skydd mot formulär från andra sidor).
+      // Backend kräver Content-Type på POST, PATCH och DELETE (skydd mot formulär från andra sidor).
       // Därför skickar vi alltid en JSON-body, även ett tomt objekt.
       headers: method === 'GET' ? undefined : { 'Content-Type': 'application/json' },
       body: method === 'GET' ? undefined : JSON.stringify(options.body ?? {}),
@@ -131,6 +133,23 @@ export function getCampaignLeads(campaignId: string, limit: number, offset: numb
 
 export function createCampaign(input: NewCampaignInput) {
   return request<CreatedCampaign>('/api/admin/campaigns', { method: 'POST', body: input })
+}
+
+// ---------- Ändra och pausa (admin) ----------
+export async function getCampaignDetail(campaignId: string): Promise<CampaignDetail> {
+  const data = await request<{ campaign: CampaignDetail }>(
+    `/api/admin/campaigns/${encodeURIComponent(campaignId)}`
+  )
+  return data.campaign
+}
+
+// Ändrar titel, färg, texter eller pausar. Skicka bara det som ska ändras.
+export async function updateCampaign(campaignId: string, input: UpdateCampaignInput): Promise<CampaignDetail> {
+  const data = await request<{ campaign: CampaignDetail }>(
+    `/api/admin/campaigns/${encodeURIComponent(campaignId)}`,
+    { method: 'PATCH', body: input }
+  )
+  return data.campaign
 }
 
 // ---------- Radera (admin) ----------

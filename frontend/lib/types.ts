@@ -45,7 +45,7 @@ export type StatsQuestion = {
   options: StatsOption[]
 }
 export type CampaignStats = {
-  campaign: { id: string; slug: string; title: string; accentColor: string }
+  campaign: { id: string; slug: string; title: string; accentColor: string; isActive: boolean }
   participantCount: number
   leadCount: number
   questionCount: number
@@ -68,6 +68,7 @@ export type CampaignSummary = {
   slug: string
   title: string
   accentColor: string
+  isActive: boolean
   createdAt: string
   questionCount: number
   participantCount: number
@@ -88,4 +89,27 @@ export type NewCampaignInput = {
     text: string
     options: { text: string; isCorrect: boolean }[]
   }[]
+}
+
+// ---------- Ändra kampanj (admin) ----------
+export type CampaignDetail = {
+  id: string
+  slug: string
+  title: string
+  accentColor: string
+  isActive: boolean
+  questions: {
+    id: string
+    position: number
+    text: string
+    options: { id: string; position: number; text: string; isCorrect: boolean }[]
+  }[]
+}
+
+// Bara texter kan ändras. Rätt svar och antal frågor kan inte ändras.
+export type UpdateCampaignInput = {
+  title?: string
+  accentColor?: string
+  isActive?: boolean
+  questions?: { id: string; text: string; options: { id: string; text: string }[] }[]
 }

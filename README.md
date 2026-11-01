@@ -37,7 +37,7 @@ Frontend pratar bara med backend. Den pratar aldrig direkt med Supabase.
 
 2. **Skapa databasen.** I Supabase: SQL Editor → New query.
    - Klistra in `backend/db/schema.sql` och kör.
-   - Har du en äldre databas (från före ägarskapet)? Kör `backend/db/migrations/001_campaign_owner.sql` först. Läs instruktionen överst i filen: du byter e-postadress till ditt konto.
+   - Har du en äldre databas? Kör filerna i `backend/db/migrations/` i ordning: `001_campaign_owner.sql` (läs instruktionen överst: du byter e-postadress till ditt konto) och sedan `002_campaign_active.sql` (pausa kampanjer).
    - Vill du ha testdata: registrera ett konto i appen först (`/admin/register`). Klistra sedan in `backend/db/seed.sql` och kör. Då får du kampanjen `demo-hostquiz`, som ägs av det första kontot.
 
 3. **Skapa `backend/.env`.** Kopiera `backend/.env.example` till `backend/.env` och fyll i värdena själv (se tabellen nedan). Filen `.env` pushas aldrig till GitHub.
@@ -74,7 +74,8 @@ Servern startar inte om något viktigt värde saknas. Då visas ett tydligt felm
 2. Skapa en kampanj under **Ny kampanj**.
 3. Under **Kampanjer** kan du kopiera den publika länken (`/q/<slug>`) och öppna **Visa statistik**.
 4. Öppna länken, t.ex. http://localhost:3000/q/demo-hostquiz, och svara på quizet.
-5. Under **Visa statistik** kan du radera en lead (en persons uppgifter) eller hela kampanjen. Det går inte att ångra.
+5. Under **Redigera** kan du rätta titel, färg och texter. Med **Pausa kampanjen** får besökare ett meddelande i stället för quizet. Du kan aktivera den igen när du vill.
+6. Under **Visa statistik** kan du radera en lead (en persons uppgifter) eller hela kampanjen. Det går inte att ångra.
 
 ## Mappar
 
@@ -105,7 +106,7 @@ Publikt, ingen inloggning:
 
 | Metod och adress | Vad den gör |
 | --- | --- |
-| `GET /api/campaigns/:slug` | Kampanj med frågor och alternativ (utan rätt svar) |
+| `GET /api/campaigns/:slug` | Kampanj med frågor och alternativ (utan rätt svar). **410** om kampanjen är pausad. |
 | `POST /api/campaigns/:slug/submissions` | Skicka alla svar. Servern räknar poängen. |
 | `POST /api/submissions/:id/lead` | Spara namn, e-post och samtycke |
 
@@ -124,6 +125,8 @@ Admin (kräver inloggning):
 | --- | --- |
 | `GET /api/admin/campaigns` | Lista kampanjer |
 | `POST /api/admin/campaigns` | Skapa kampanj |
+| `GET /api/admin/campaigns/:id` | Hela kampanjen med rätt svar (för redigering) |
+| `PATCH /api/admin/campaigns/:id` | Ändra titel, färg, texter eller pausa (`isActive`). Antal frågor och rätt svar kan inte ändras. |
 | `GET /api/admin/campaigns/:id/stats` | Statistik per fråga |
 | `GET /api/admin/campaigns/:id/leads` | Leads (`?limit=50&offset=0`) |
 | `DELETE /api/admin/campaigns/:id/leads/:leadId` | Radera en lead (namn och e-post). Deltagaren och svaren finns kvar. |
@@ -131,7 +134,7 @@ Admin (kräver inloggning):
 
 ## Testa API:t i Postman
 
-- Skicka alltid **Body → raw → JSON** på POST, även `{}`. Utan det svarar csrf-skyddet med **403**.
+- Skicka alltid **Body → raw → JSON** på POST, PATCH och DELETE, även `{}`. Utan det svarar csrf-skyddet med **403**.
 - Använd `localhost`, aldrig `127.0.0.1`. Annars skickas inte cookien.
 - Logga in först (`POST /auth/login`). Postman sparar cookien själv.
 - Admin-routes ger **401** utan inloggning.
@@ -179,6 +182,7 @@ Klart:
 - Registrering och inloggning med Supabase Auth
 - Ägarskap: varje användare ser bara sina egna kampanjer, statistik och leads
 - Radera en lead eller en hel kampanj (GDPR), med frågan "Är du säker?"
+- Redigera kampanj (titel, färg, texter) och pausa/aktivera den
 
 På gång / idéer:
 - Bekräftelse av e-post (stöds i koden, men är avstängd medan vi testar)

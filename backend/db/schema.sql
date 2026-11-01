@@ -2,8 +2,9 @@
 -- Kör hela filen i Supabase: SQL Editor → New query → klistra in → Run.
 -- Filen kan köras flera gånger (den använder "if not exists").
 --
--- OBS: Har du en GAMMAL databas (kampanjer utan ägare)? Kör först
--- db/migrations/001_campaign_owner.sql. Den lägger till kolumnen owner_id.
+-- OBS: Har du en GAMMAL databas? Kör filerna i db/migrations/ i ordning:
+--   001_campaign_owner.sql  (lägger till owner_id)
+--   002_campaign_active.sql (lägger till is_active)
 
 -- ---------------------------------------------------------------
 -- 1. campaigns: en kampanj. "slug" blir den publika länken.
@@ -18,6 +19,8 @@ create table if not exists campaigns (
   -- Ägaren: användaren (Supabase Auth) som skapade kampanjen.
   -- Tas användaren bort, tas kampanjen och allt som hör till den bort.
   owner_id     uuid not null references auth.users(id) on delete cascade,
+  -- Pausad kampanj (false): besökare kan inte svara. Data finns kvar.
+  is_active    boolean not null default true,
   created_at   timestamptz not null default now()
 );
 

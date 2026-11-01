@@ -10,7 +10,7 @@ import { slugify } from '../utils/slugify.js'
 export async function listCampaigns(ownerId: string) {
   const { data, error } = await supabase
     .from('campaigns')
-    .select('id, slug, title, accent_color, created_at, questions(count), submissions(count)')
+    .select('id, slug, title, accent_color, is_active, created_at, questions(count), submissions(count)')
     .eq('owner_id', ownerId) // bara den inloggades egna kampanjer
     .order('created_at', { ascending: false })
 
@@ -21,6 +21,7 @@ export async function listCampaigns(ownerId: string) {
     slug: row.slug,
     title: row.title,
     accentColor: row.accent_color,
+    isActive: row.is_active !== false,
     createdAt: row.created_at,
     questionCount: row.questions?.[0]?.count ?? 0,
     participantCount: row.submissions?.[0]?.count ?? 0,

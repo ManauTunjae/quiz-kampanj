@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { ColorField } from '@/components/admin/color-field'
 import { CopyLinkButton } from '@/components/admin/copy-link-button'
 import { Button, buttonStyles } from '@/components/ui/button'
 import { inputStyles, TextField } from '@/components/ui/text-field'
@@ -195,32 +196,7 @@ export function CampaignForm({ onCreateAnother }: { onCreateAnother: () => void 
           autoComplete="off"
         />
 
-        <div className="space-y-2">
-          <label htmlFor="accent-hex" className="block text-base font-medium text-blush-100">
-            Accentfärg
-          </label>
-          <p className="text-sm text-blush-300">
-            Används till små detaljer i kampanjen, aldrig till text.
-          </p>
-          <div className="flex items-center gap-3">
-            <input
-              type="color"
-              aria-label="Välj färg"
-              value={isHexColor(accent) ? accent.toLowerCase() : DEFAULT_COLOR.toLowerCase()}
-              onChange={(e) => setAccent(e.target.value)}
-              className="size-12 shrink-0 cursor-pointer rounded-xl border border-blush-300/60 bg-plum-950 p-1"
-            />
-            <input
-              id="accent-hex"
-              value={accent}
-              onChange={(e) => setAccent(e.target.value)}
-              maxLength={7}
-              spellCheck={false}
-              autoComplete="off"
-              className={`${inputStyles} max-w-40 font-mono`}
-            />
-          </div>
-        </div>
+        <ColorField value={accent} onChange={setAccent} />
       </section>
 
       {/* ---------- Frågor ---------- */}

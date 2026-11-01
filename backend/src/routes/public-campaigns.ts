@@ -25,7 +25,16 @@ const submissionLimiter = createRateLimiter({ max: 60, windowMs: 10 * 60 * 1000 
 publicCampaigns.get('/campaigns/:slug', zValidator('param', slugParamSchema, slugHook), async (c) => {
   const { slug } = c.req.valid('param')
   const campaign = await getPublicCampaign(slug)
-  if (!campaign) return c.json({ error: 'Kampanjen finns inte' }, 404)
+  if (!campaign) {
+    c.header('Cache-Control', 'no-store') // 404 får också cachas av webbläsare
+    return c.json({ error: 'Kampanjen finns inte' }, 404)
+  }
+  // 410 = pausad. Inga frågor skickas, bara titeln.
+  // no-store: webbläsare får cacha 410 av sig själva. Då skulle besökaren fortfarande se "pausat" när du har aktiverat igen.
+  if (campaign.paused) {
+    c.header('Cache-Control', 'no-store')
+    return c.json({ error: 'Quizet är pausat just nu', paused: true, title: campaign.title }, 410)
+  }
   return c.json({ campaign })
 })
 
@@ -46,9 +55,9 @@ publicCampaigns.post(
     const result = await submitAnswers(slug, answers)
 
     if (!result.ok) {
-      return result.reason === 'not_found'
-        ? c.json({ error: 'Kampanjen finns inte' }, 404)
-        : c.json({ error: 'Svaren stämmer inte med kampanjen' }, 400)
+      if (result.reason === 'not_found') return c.json({ error: 'Kampanjen finns inte' }, 404)
+      if (result.reason === 'paused') return c.json({ error: 'Quizet är pausat just nu', paused: true }, 410)
+      return c.json({ error: 'Svaren stämmer inte med kampanjen' }, 400)
     }
 
     // consentText: texten som visas bredvid samtyckesrutan i lead-formuläret
