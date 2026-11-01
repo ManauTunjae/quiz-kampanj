@@ -129,6 +129,7 @@ Admin (kräver inloggning):
 | `PATCH /api/admin/campaigns/:id` | Ändra titel, färg, texter eller pausa (`isActive`). Antal frågor och rätt svar kan inte ändras. |
 | `GET /api/admin/campaigns/:id/stats` | Statistik per fråga |
 | `GET /api/admin/campaigns/:id/leads` | Leads (`?limit=50&offset=0`) |
+| `GET /api/admin/campaigns/:id/leads.csv` | Hämta alla leads som CSV-fil (max 10 per 10 min) |
 | `DELETE /api/admin/campaigns/:id/leads/:leadId` | Radera en lead (namn och e-post). Deltagaren och svaren finns kvar. |
 | `DELETE /api/admin/campaigns/:id` | Radera kampanjen och allt som hör till den |
 
@@ -138,6 +139,7 @@ Admin (kräver inloggning):
 - Använd `localhost`, aldrig `127.0.0.1`. Annars skickas inte cookien.
 - Logga in först (`POST /auth/login`). Postman sparar cookien själv.
 - Admin-routes ger **401** utan inloggning.
+- CSV-export: i Postman, tryck på pilen bredvid **Send** och välj **Send and Download** för att spara filen.
 
 ## Säkerhet och GDPR
 
@@ -183,8 +185,8 @@ Klart:
 - Ägarskap: varje användare ser bara sina egna kampanjer, statistik och leads
 - Radera en lead eller en hel kampanj (GDPR), med frågan "Är du säker?"
 - Redigera kampanj (titel, färg, texter) och pausa/aktivera den
+- Export av leads till CSV (öppnas i Excel)
 
 På gång / idéer:
 - Bekräftelse av e-post (stöds i koden, men är avstängd medan vi testar)
-- Export av leads till CSV
 - Publicering (deploy)
