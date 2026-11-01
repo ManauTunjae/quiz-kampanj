@@ -239,6 +239,7 @@ Klart:
 - Redigera kampanj (titel, färg, texter) och pausa/aktivera den
 - Export av leads till CSV (öppnas i Excel)
 - Automatiska tester (Vitest) och CI på GitHub
+- Ny startsida med ett litet demo-quiz, steg och funktioner (allt innehåll är påhittat)
 
 På gång / idéer:
 - Publicering (deploy)
