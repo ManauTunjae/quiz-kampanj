@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState, type FormEvent } from 'react'
+import { ResendConfirmation } from '@/components/admin/resend-confirmation'
 import { Button } from '@/components/ui/button'
 import { TextField } from '@/components/ui/text-field'
 import { ApiError, getMe, login, register } from '@/lib/api'
@@ -41,6 +42,7 @@ export function AuthForm({ mode }: { mode: Mode }) {
   const [formError, setFormError] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [checkEmail, setCheckEmail] = useState(false)
+  const [notConfirmed, setNotConfirmed] = useState(false) // 403: e-posten är inte bekräftad
 
   // Redan inloggad? Gå direkt till admin.
   useEffect(() => {
@@ -62,6 +64,7 @@ export function AuthForm({ mode }: { mode: Mode }) {
     if (submitting) return
     setFieldErrors({})
     setFormError('')
+    setNotConfirmed(false)
     setSubmitting(true)
     try {
       if (mode === 'login') {
@@ -91,6 +94,7 @@ export function AuthForm({ mode }: { mode: Mode }) {
         setFieldErrors(next)
         if (Object.keys(next).length > 0) return
       }
+      if (err.status === 403) setNotConfirmed(true)
       setFormError(err.message)
     }
   }
@@ -106,7 +110,8 @@ export function AuthForm({ mode }: { mode: Mode }) {
           Vi har skickat en länk till din e-postadress. Klicka på den för att bekräfta kontot.
           Sedan kan du logga in.
         </p>
-        <Link href="/admin/login" className="inline-block text-blush-300 underline underline-offset-4 hover:text-blush-100">
+        <ResendConfirmation email={email} />
+        <Link href="/admin/login" className="inline-flex min-h-12 items-center text-blush-300 underline underline-offset-4 hover:text-blush-100">
           Gå till inloggningen
         </Link>
       </div>
@@ -158,6 +163,14 @@ export function AuthForm({ mode }: { mode: Mode }) {
           />
           Visa lösenord
         </label>
+        {mode === 'login' && (
+          <Link
+            href="/admin/forgot-password"
+            className="inline-flex min-h-12 items-center text-blush-300 underline underline-offset-4 hover:text-blush-100"
+          >
+            Glömt lösenordet?
+          </Link>
+        )}
       </div>
 
       {formError && (
@@ -165,6 +178,8 @@ export function AuthForm({ mode }: { mode: Mode }) {
           {formError}
         </p>
       )}
+
+      {notConfirmed && <ResendConfirmation email={email} />}
 
       <Button type="submit" disabled={submitting} className="min-h-14 w-full text-lg">
         {submitting ? t.submitting : t.submit}

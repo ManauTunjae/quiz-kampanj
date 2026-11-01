@@ -132,12 +132,26 @@ Admin (kräver cookie):
 - `GET /api/admin/campaigns`, `POST /api/admin/campaigns`
 - `GET /api/admin/campaigns/:id/stats`, `GET /api/admin/campaigns/:id/leads`
 
+### Glömt lösenord och e-postbekräftelse
+- Mejlen skickas av Supabase med standardmallarna (mallarna kan inte ändras utan egen SMTP). Länken går via Supabase till vår frontend (`/admin/reset-password`, `/admin/confirm`) med `#access_token=...` i adressen. Frontend läser den i webbläsaren (`lib/auth-link.ts`), rensar adressen och skickar nyckeln till backend först när användaren trycker på knappen.
+- Backend kontrollerar nyckeln med `auth.getUser(accessToken)` och avslutar sedan Supabase-sessionen (`admin.signOut(token, 'global')`), så nyckeln fungerar bara en gång. `redirectTo` måste stå under Redirect URLs i Supabase.
+- `forgot-password` och `resend-confirmation` svarar ALLTID 200 för okända e-postadresser (avslöjar inte vilka som har konto). Samma regel som registrering.
+- `reset-password`: `getUser` och sedan `auth.admin.updateUserById` med den hemliga nyckeln. Användaren loggas inte in, hen loggar in med det nya lösenordet. `confirm` loggar in användaren.
+- Gamla inloggnings-cookies gäller upp till 8 timmar även efter att lösenordet bytts.
+- Logga aldrig e-post, lösenord eller nycklar från länken.
+
 ### Ändra och pausa kampanj
 - `PATCH /api/admin/campaigns/:id` ändrar titel, färg, `isActive` och TEXTER. Slug (den publika länken) ändras aldrig.
 - Antal frågor, antal alternativ och vilket svar som är rätt går INTE att ändra. Annars stämmer inte gamla poäng och statistik. Frågor och alternativ skickas med sina id:n, och de måste vara exakt de som finns.
 - `strictObject` i zod: okända fält (t.ex. `isCorrect`, `slug`) ger 400.
 - Pausad kampanj (`is_active = false`): publik GET och inskick av svar ger **410**, utan frågor. Den som redan svarat kan fortfarande spara sin lead. Data finns kvar.
 - CORS måste tillåta `PATCH` (finns i `index.ts`).
+
+### Export till CSV
+- `GET /api/admin/campaigns/:id/leads.csv`. Ägarkontroll som vanligt (annars 404). Max 10 exporter per 10 minuter och användare.
+- Semikolon som avskiljare och BOM först (svenska Excel). Tider i svensk tid. Byggs i `lib/csv.ts`.
+- CSV-injektion: text som börjar med `= + - @` får ett `'` framför. Ändra aldrig det. Namn kommer från besökare.
+- `Cache-Control: no-store`. Logga aldrig innehållet. CORS exponerar `Content-Disposition`.
 
 ### Radera data (GDPR)
 - `DELETE /api/admin/campaigns/:id/leads/:leadId` raderar bara leaden (namn och e-post). Deltagaren och svaren är anonyma och finns kvar.
