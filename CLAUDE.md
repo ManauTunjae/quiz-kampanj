@@ -145,7 +145,7 @@ Admin (kräver cookie):
 - Antal frågor, antal alternativ och vilket svar som är rätt går INTE att ändra. Annars stämmer inte gamla poäng och statistik. Frågor och alternativ skickas med sina id:n, och de måste vara exakt de som finns.
 - `strictObject` i zod: okända fält (t.ex. `isCorrect`, `slug`) ger 400.
 - Pausad kampanj (`is_active = false`): publik GET och inskick av svar ger **410**, utan frågor. Den som redan svarat kan fortfarande spara sin lead. Data finns kvar.
-- CORS måste tillåta `PATCH` (finns i `index.ts`).
+- CORS måste tillåta `PATCH` (finns i `app.ts`).
 
 ### Export till CSV
 - `GET /api/admin/campaigns/:id/leads.csv`. Ägarkontroll som vanligt (annars 404). Max 10 exporter per 10 minuter och användare.
@@ -158,6 +158,16 @@ Admin (kräver cookie):
 - `DELETE /api/admin/campaigns/:id` raderar kampanjen. Databasen raderar resten via `on delete cascade`.
 - Båda kollar ägaren. Någon annans data ger 404 (samma som "finns inte"). Logga aldrig personuppgifter.
 - Frontend ska alltid fråga "Är du säker?" före radering.
+
+## Tester
+
+- Vitest i både `backend/` och `frontend/`. Kör `npm test` i rotmappen.
+- Backend: `src/app.ts` bygger appen, `src/index.ts` startar bara servern. Route-tester använder `app.request(...)`.
+- Tester får ALDRIG använda riktig `.env` eller riktig Supabase. Låtsasvärden står i `backend/vitest.config.ts`. Lägg aldrig nycklar i tester.
+- Route-tester byter ut services mot `vi.fn()` (`tests/helpers/setup-routes.ts`). Service-tester byter ut Supabase mot `tests/helpers/fake-supabase.ts`.
+- Ny admin-route → lägg den i `adminRoutes` i `tests/routes/security.test.ts` (401 utan cookie).
+- Ny feature → skriv minst tester för: validering, ägarskap (annans data = 404) och felfall.
+- CI: `.github/workflows/ci.yml` kör typecheck, lint och tester.
 
 ## Datamodell (Supabase)
 
