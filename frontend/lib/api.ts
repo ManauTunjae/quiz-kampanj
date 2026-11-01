@@ -91,6 +91,25 @@ export function logout() {
   return request<{ ok: true }>('/auth/logout', { method: 'POST' })
 }
 
+// Glömt lösenord. Svaret är alltid ok, även om e-posten saknar konto.
+export function forgotPassword(email: string) {
+  return request<{ ok: true }>('/auth/forgot-password', { method: 'POST', body: { email } })
+}
+
+// Byter lösenord med åtkomstnyckeln från länken i mejlet.
+export function resetPassword(accessToken: string, password: string) {
+  return request<{ ok: true }>('/auth/reset-password', { method: 'POST', body: { accessToken, password } })
+}
+
+// Bekräftar e-posten med åtkomstnyckeln från länken i mejlet. Lyckas det är man inloggad direkt.
+export function confirmEmail(accessToken: string) {
+  return request<{ ok: true; user: AuthUser }>('/auth/confirm', { method: 'POST', body: { accessToken } })
+}
+
+export function resendConfirmation(email: string) {
+  return request<{ ok: true }>('/auth/resend-confirmation', { method: 'POST', body: { email } })
+}
+
 // ---------- Publik quiz (ingen inloggning) ----------
 export async function getPublicCampaign(slug: string): Promise<PublicCampaign> {
   const data = await request<{ campaign: PublicCampaign }>(

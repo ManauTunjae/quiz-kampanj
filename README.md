@@ -55,6 +55,23 @@ Frontend pratar bara med backend. Den pratar aldrig direkt med Supabase.
 
 > Starta om backend när du ändrar `backend/.env`. Den läser inte om filen själv.
 
+## E-post: glömt lösenord och bekräftelse
+
+Supabase skickar mejlen med sina egna standardmallar (på engelska). Med Supabases inbyggda mejltjänst går det inte att ändra mallarna. Det kräver egen SMTP. Se [Supabase: Custom SMTP](https://supabase.com/docs/guides/auth/auth-smtp).
+
+Så fungerar det: länken i mejlet går först till Supabase. Supabase kontrollerar den och skickar användaren till vår frontend (`/admin/reset-password` eller `/admin/confirm`) med en åtkomstnyckel efter `#` i adressen. Frontend läser nyckeln, tar bort den ur adressfältet och skickar den till backend först när användaren trycker på knappen.
+
+Gör så här i Supabase:
+
+1. **Authentication → URL Configuration:** sätt **Site URL** till `http://localhost:3000`.
+2. Under **Redirect URLs**: lägg till `http://localhost:3000/**`. Utan den hamnar användaren på startsidan med ett fel i adressen.
+3. **Authentication → Sign In / Providers → Email:** slå på **Confirm email** när du vill kräva bekräftelse.
+
+**Begränsningar vid test (inbyggd mejltjänst):**
+- Mejl skickas bara till adresser som är medlemmar i ditt Supabase-team (din egen adress fungerar), och högst **2 mejl per timme**. Andra adresser får "Email address not authorized".
+- Vissa mejlprogram (t.ex. Outlook/Hotmail) öppnar länkar i förväg för att skanna dem. Då är engångskoden förbrukad och du får `otp_expired`. Sidan visar då ett svenskt felmeddelande. Begär ett nytt mejl, eller öppna länken direkt från mejlet utan att något annat hunnit öppna den.
+- För riktig drift behövs egen mejltjänst (Custom SMTP). Då kan man också ändra mallarna.
+
 ## Miljövariabler (`backend/.env`)
 
 | Namn | Vad det är |
@@ -75,7 +92,9 @@ Servern startar inte om något viktigt värde saknas. Då visas ett tydligt felm
 3. Under **Kampanjer** kan du kopiera den publika länken (`/q/<slug>`) och öppna **Visa statistik**.
 4. Öppna länken, t.ex. http://localhost:3000/q/demo-hostquiz, och svara på quizet.
 5. Under **Redigera** kan du rätta titel, färg och texter. Med **Pausa kampanjen** får besökare ett meddelande i stället för quizet. Du kan aktivera den igen när du vill.
-6. Under **Visa statistik** kan du radera en lead (en persons uppgifter) eller hela kampanjen. Det går inte att ångra.
+6. Under **Leads** på statistiksidan finns **Exportera CSV**. Filen öppnas i Excel. Den innehåller personuppgifter, så spara den säkert och lägg den aldrig i git.
+7. Glömt lösenordet? Tryck **Glömt lösenordet?** på inloggningssidan.
+8. Under **Visa statistik** kan du radera en lead (en persons uppgifter) eller hela kampanjen. Det går inte att ångra.
 
 ## Mappar
 
@@ -118,6 +137,10 @@ Inloggning:
 | `POST /auth/login` | Logga in med e-post och lösenord. Sätter en httpOnly-cookie. |
 | `POST /auth/logout` | Logga ut |
 | `GET /auth/me` | Är jag inloggad? Vem? |
+| `POST /auth/forgot-password` | Skicka mejl med länk för nytt lösenord. Svarar alltid 200. |
+| `POST /auth/reset-password` | Byt lösenord med koden (`tokenHash`) från mejlet |
+| `POST /auth/confirm` | Bekräfta e-post med koden från mejlet. Loggar in direkt. |
+| `POST /auth/resend-confirmation` | Skicka bekräftelsemejlet igen. Svarar alltid 200. |
 
 Admin (kräver inloggning):
 
@@ -146,7 +169,7 @@ Admin (kräver inloggning):
 - Hemligheter finns bara i `.env` (som ignoreras av git). `.env.example` har tomma värden.
 - Rätt svar skickas aldrig till besökaren. Poängen räknas på servern.
 - Användare och lösenord ligger i Supabase Auth. Vi sparar inga lösenord. Cookien innehåller användarens id och e-post (signerad), aldrig lösenord eller token.
-- Spärrar mot spam: max 5 felaktiga inloggningar per 15 minuter, 10 nya konton per timme, 60 inskickade quiz och 30 leads per 10 minuter och IP-adress.
+- Spärrar mot spam: max 5 felaktiga inloggningar per 15 minuter, 10 nya konton per timme, 5 mejl per timme (glömt lösenord, nytt bekräftelsemejl), 10 försök med mejlkod per 15 minuter, 60 inskickade quiz och 30 leads per 10 minuter och IP-adress.
 - Samtyckestexten finns på ett ställe (`backend/src/lib/consent.ts`). Texten som besökaren godkände sparas tillsammans med varje lead.
 - Namn och e-post loggas aldrig och skickas aldrig tillbaka i svar. Leads-svaren för admin cachas inte.
 - Varje kampanj har en ägare. Admin-routes filtrerar på inloggad användare, och någon annans kampanj ger 404.
@@ -158,6 +181,8 @@ Admin (kräver inloggning):
 | --- | --- |
 | Backend startar inte och klagar på saknade värden | Fyll i `backend/.env` och starta om |
 | 400 vid registrering | Supabase godkänner inte alla adresser (t.ex. `example.com`). Använd en riktig e-postadress. Se felkoden i backend-terminalen. |
+| Länken i mejlet ger `otp_expired` eller landar på startsidan | Koden gäller en gång och en timme, och mejlprogram kan öppna den i förväg. Kontrollera att `http://localhost:3000/**` står under Redirect URLs, och begär ett nytt mejl. |
+| "Email address not authorized" eller inget mejl kommer | Supabase inbyggda mejl går bara till teamets medlemmar och max 2 per timme. Använd din egen adress, eller koppla en egen mejltjänst. |
 | 429 vid registrering | Supabase begränsar antalet registreringar per timme. Vänta en stund. |
 | `403 Forbidden` i Postman | Body → raw → JSON (t.ex. `{}`) |
 | Inloggningen "fastnar" i webbläsaren | Öppna `http://localhost:3000`, inte `127.0.0.1` |
@@ -184,9 +209,9 @@ Klart:
 - Registrering och inloggning med Supabase Auth
 - Ägarskap: varje användare ser bara sina egna kampanjer, statistik och leads
 - Radera en lead eller en hel kampanj (GDPR), med frågan "Är du säker?"
+- Glömt lösenord, e-postbekräftelse och "skicka mejlet igen" (kräver mejlmallarna i Supabase, se avsnittet E-post)
 - Redigera kampanj (titel, färg, texter) och pausa/aktivera den
 - Export av leads till CSV (öppnas i Excel)
 
 På gång / idéer:
-- Bekräftelse av e-post (stöds i koden, men är avstängd medan vi testar)
 - Publicering (deploy)
