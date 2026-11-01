@@ -2,10 +2,10 @@
 // Resten av koden importerar "env" härifrån och använder aldrig process.env direkt.
 
 const required = [
-  'ADMIN_PASSWORD',
   'SESSION_SECRET',
   'SUPABASE_URL',
   'SUPABASE_SECRET_KEY',
+  'SUPABASE_PUBLISHABLE_KEY',
 ] as const
 
 // Stoppa direkt med ett tydligt fel om något saknas i backend/.env
@@ -27,10 +27,12 @@ export const env = {
   frontendOrigin: process.env.FRONTEND_ORIGIN ?? 'http://localhost:3000',
   isProd: process.env.NODE_ENV === 'production',
 
-  adminPassword: get('ADMIN_PASSWORD'),
   sessionSecret: get('SESSION_SECRET'),
 
   // Den HEMLIGA nyckeln. Får bara finnas i backend.
   supabaseUrl: get('SUPABASE_URL'),
   supabaseSecretKey: get('SUPABASE_SECRET_KEY'),
+
+  // Den PUBLICERBARA nyckeln. Används bara för att registrera och logga in användare.
+  supabasePublishableKey: get('SUPABASE_PUBLISHABLE_KEY'),
 }

@@ -8,6 +8,9 @@ import type {
   LeadInput,
   CampaignStats,
   LeadsPage,
+  MeResponse,
+  RegisterResponse,
+  AuthUser,
 } from './types'
 
 // Alla anrop till backend går via den här filen.
@@ -64,13 +67,22 @@ async function request<T>(
 }
 
 // ---------- Inloggning ----------
-export async function getMe(): Promise<boolean> {
-  const data = await request<{ loggedIn: boolean }>('/auth/me')
-  return data.loggedIn
+export function getMe() {
+  return request<MeResponse>('/auth/me')
 }
 
-export function login(password: string) {
-  return request<{ ok: true }>('/auth/login', { method: 'POST', body: { password } })
+export function login(email: string, password: string) {
+  return request<{ ok: true; user: AuthUser }>('/auth/login', {
+    method: 'POST',
+    body: { email, password },
+  })
+}
+
+export function register(email: string, password: string) {
+  return request<RegisterResponse>('/auth/register', {
+    method: 'POST',
+    body: { email, password },
+  })
 }
 
 export function logout() {

@@ -2,6 +2,9 @@
 -- Kör EFTER schema.sql, på samma sätt i SQL Editor.
 -- Alla namn och e-postadresser är påhittade (@example.com).
 -- Filen kan köras flera gånger: den raderar först den gamla demo-kampanjen.
+--
+-- Demo-kampanjen blir ägd av det FÖRSTA kontot som skapats i appen.
+-- Registrera dig i appen (/admin/register) innan du kör den här filen.
 
 delete from campaigns where slug = 'demo-hostquiz';
 
@@ -14,11 +17,17 @@ declare
   -- felaktiga alternativ (ett per fråga räcker för fejkdatan)
   o1_bad uuid; o2_bad uuid; o3_bad uuid; o4_bad uuid;
   s_id uuid;
+  owner uuid;
   i int;
   names text[] := array['Alva Test','Bo Exempel','Cleo Fejk','Dan Demo','Elsa Prov'];
 begin
-  insert into campaigns (slug, title, accent_color)
-  values ('demo-hostquiz', 'Höstquiz: Hur väl känner du naturen?', '#E3B6B1')
+  select id into owner from auth.users order by created_at limit 1;
+  if owner is null then
+    raise exception 'Det finns inget konto än. Registrera dig i appen först och kör sedan seed.sql igen.';
+  end if;
+
+  insert into campaigns (slug, title, accent_color, owner_id)
+  values ('demo-hostquiz', 'Höstquiz: Hur väl känner du naturen?', '#E3B6B1', owner)
   returning id into c_id;
 
   -- Fråga 1

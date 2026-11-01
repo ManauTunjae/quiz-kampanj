@@ -48,17 +48,22 @@ Branch-namn: `chore/...` för setup, `feature/...` för funktioner.
 - Slå på Row Level Security (RLS) på alla tabeller. Backend använder secret-nyckeln.
 - Skicka ALDRIG `is_correct` till besökare. Poängen räknas på servern.
 
-## Admin-login (cookie)
+## Inloggning med användare (Supabase Auth + cookie)
 
-- `ADMIN_PASSWORD` och `SESSION_SECRET` ligger i `backend/.env`.
-- `POST /auth/login` kollar lösenordet. Om rätt: sätt en **signerad** httpOnly-cookie
-  med `setSignedCookie` (Hono). Cookien innehåller aldrig själva lösenordet.
-- `POST /auth/logout` tar bort cookien (`deleteCookie`).
-- `GET /auth/me` svarar om man är inloggad (används av frontend).
-- En middleware på `/api/admin/*` kollar cookien med `getSignedCookie`. Annars `401`.
-- Jämför lösenord med en tidskonstant jämförelse (`timingSafeEqual`).
+- Användare och lösenord finns i Supabase Auth (`auth.users`). Vi sparar aldrig lösenord själva.
+- `SESSION_SECRET`, `SUPABASE_SECRET_KEY` och `SUPABASE_PUBLISHABLE_KEY` ligger i `backend/.env`.
+  (`ADMIN_PASSWORD` används inte längre.)
+- Registrering och inloggning går via backend (`database/supabase-auth.ts`, publishable-nyckeln).
+  Skapa en NY klient per anrop. Dela aldrig en inloggad klient mellan besökare.
+- `POST /auth/register`, `POST /auth/login`: vid lyckat resultat sätts en **signerad** httpOnly-cookie
+  `qb_session` med `setSignedCookie` (Hono). Cookien har användarens id, e-post och tid. Aldrig lösenord eller token.
+- `POST /auth/logout` tar bort cookien. `GET /auth/me` svarar `{ loggedIn, user }`.
+- Middleware `requireUser` på `/api/admin/*` läser cookien och sätter `c.get('user')`. Annars `401`.
+- Samma felmeddelande för fel lösenord och okänd e-post. Registrering avslöjar inte om ett konto redan finns.
+- E-postbekräftelse: stöds (`needsConfirmation`), men är avstängd i Supabase medan vi bygger och testar.
+- Spärrar: 5 felaktiga inloggningar per 15 min och IP, 10 registreringar per timme och IP.
 - Cookie-inställningar: `httpOnly: true`, `sameSite: 'Lax'`, `path: '/'`,
-  `secure: true` bara i produktion, `maxAge` t.ex. 8 timmar.
+  `secure: true` bara i produktion, `maxAge` 8 timmar.
 
 ## CORS och cookies mellan port 3000 och 8000
 
@@ -84,6 +89,14 @@ Regler för inskickade svar:
 - Max 60 inskickningar per 10 min och IP (`lib/rate-limit.ts`) → annars 429 + `Retry-After`.
 - Postman: skicka Body → raw → JSON (annars stoppar csrf-skyddet med 403).
 
+Regler för ägarskap (admin):
+- Varje kampanj har en ägare (`campaigns.owner_id`). Ägaren sätts av servern från inloggningen, aldrig från klienten.
+- ALLA admin-frågor mot databasen måste filtrera på `owner_id` (kampanjer) eller kontrollera ägaren först (statistik, leads). Backend använder secret-nyckeln och går förbi RLS, så filtret är det enda skyddet.
+- Någon annans kampanj ger `404` (samma svar som en kampanj som inte finns), aldrig `403`.
+- Publika routes (`/api/campaigns/:slug`, svar, lead) är oförändrade: alla besökare kan använda en kampanjlänk.
+- Nya admin-routes ska testas med två användare (se `owner-test`-idén: A ska aldrig se B:s data).
+- Databasändringar för befintliga databaser ligger i `backend/db/migrations/`.
+
 Regler för dashboarden (admin):
 - `GET /api/admin/campaigns/:id/stats` och `GET /api/admin/campaigns/:id/leads?limit=100&offset=0` kräver inloggning.
 - Leads innehåller personuppgifter: svaret har `Cache-Control: no-store`, och e-post/namn loggas aldrig.
@@ -103,13 +116,17 @@ Regler för dashboarden (frontend):
 - Staplarna är bara dekoration. Antal och procent står alltid som text, och rätt svar märks med texten "Rätt svar" (aldrig bara färg).
 - Leads hämtas 50 åt gången ("Visa fler"). E-post visas som `mailto:`-länk.
 
+Regler för inloggning (frontend):
+- Sidorna `/admin/login` och `/admin/register` använder samma komponent (`components/admin/auth-form.tsx`). Felmeddelandena kommer från servern.
+- `(protected)/layout.tsx` kontrollerar `GET /auth/me` och visar "Inloggad som <e-post>". Inte inloggad skickas till `/admin/login`.
+
 Regler för resultatet (frontend):
 - Poängen kommer från servern. Frontend räknar aldrig själv.
 - Konfetti ritas på canvas (`components/quiz/confetti.tsx`, inga extra paket) i palettens färger.
 - Med "minska rörelse" (`prefers-reduced-motion`) visas ingen konfetti och `animate-pop` är nästan avstängd.
 
 Auth:
-- `POST /auth/login`, `POST /auth/logout`, `GET /auth/me`
+- `POST /auth/register`, `POST /auth/login`, `POST /auth/logout`, `GET /auth/me`
 
 Admin (kräver cookie):
 - `GET /api/admin/campaigns`, `POST /api/admin/campaigns`
@@ -117,7 +134,7 @@ Admin (kräver cookie):
 
 ## Datamodell (Supabase)
 
-- `campaigns`: id, slug (unik), title, accent_color, created_at
+- `campaigns`: id, slug (unik), title, accent_color, owner_id (→ auth.users), created_at
 - `questions`: id, campaign_id, position, text
 - `options`: id, question_id, position, text, is_correct
 - `submissions`: id, campaign_id, score, total, created_at

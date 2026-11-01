@@ -5,7 +5,7 @@ import { csrf } from 'hono/csrf'
 import { HTTPException } from 'hono/http-exception'
 import { logger } from 'hono/logger'
 import { env } from './config/env.js'
-import { requireAdmin } from './middleware/require-admin.js'
+import { requireUser } from './middleware/require-user.js'
 import { adminCampaigns } from './routes/admin-campaigns.js'
 import { adminDashboard } from './routes/admin-dashboard.js'
 import { authRoutes } from './routes/auth.js'
@@ -37,7 +37,7 @@ app.route('/api', publicCampaigns) // GET /api/campaigns/:slug (för besökare)
 app.route('/api', publicSubmissions) // POST /api/submissions/:id/lead
 
 // Allt under /api/admin kräver inloggning
-app.use('/api/admin/*', requireAdmin)
+app.use('/api/admin/*', requireUser)
 app.route('/api/admin', adminCampaigns)
 app.route('/api/admin', adminDashboard) // stats och leads
 

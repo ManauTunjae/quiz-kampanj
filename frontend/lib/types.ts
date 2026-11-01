@@ -21,6 +21,13 @@ export type SubmissionResult = {
 }
 export type LeadInput = { name: string; email: string; consent: boolean }
 
+// ---------- Inloggning ----------
+export type AuthUser = { id: string; email: string }
+export type MeResponse = { loggedIn: boolean; user?: AuthUser }
+export type RegisterResponse =
+  | { needsConfirmation: false; user: AuthUser }
+  | { needsConfirmation: true }
+
 // ---------- Admin-dashboard ----------
 export type StatsOption = {
   id: string
