@@ -89,6 +89,14 @@ Regler för inskickade svar:
 - Max 60 inskickningar per 10 min och IP (`lib/rate-limit.ts`) → annars 429 + `Retry-After`.
 - Postman: skicka Body → raw → JSON (annars stoppar csrf-skyddet med 403).
 
+Regler för ägarskap (admin):
+- Varje kampanj har en ägare (`campaigns.owner_id`). Ägaren sätts av servern från inloggningen, aldrig från klienten.
+- ALLA admin-frågor mot databasen måste filtrera på `owner_id` (kampanjer) eller kontrollera ägaren först (statistik, leads). Backend använder secret-nyckeln och går förbi RLS, så filtret är det enda skyddet.
+- Någon annans kampanj ger `404` (samma svar som en kampanj som inte finns), aldrig `403`.
+- Publika routes (`/api/campaigns/:slug`, svar, lead) är oförändrade: alla besökare kan använda en kampanjlänk.
+- Nya admin-routes ska testas med två användare (se `owner-test`-idén: A ska aldrig se B:s data).
+- Databasändringar för befintliga databaser ligger i `backend/db/migrations/`.
+
 Regler för dashboarden (admin):
 - `GET /api/admin/campaigns/:id/stats` och `GET /api/admin/campaigns/:id/leads?limit=100&offset=0` kräver inloggning.
 - Leads innehåller personuppgifter: svaret har `Cache-Control: no-store`, och e-post/namn loggas aldrig.
@@ -126,7 +134,7 @@ Admin (kräver cookie):
 
 ## Datamodell (Supabase)
 
-- `campaigns`: id, slug (unik), title, accent_color, created_at
+- `campaigns`: id, slug (unik), title, accent_color, owner_id (→ auth.users), created_at
 - `questions`: id, campaign_id, position, text
 - `options`: id, question_id, position, text, is_correct
 - `submissions`: id, campaign_id, score, total, created_at

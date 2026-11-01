@@ -1,6 +1,9 @@
 -- QuizBloom – databasschema
 -- Kör hela filen i Supabase: SQL Editor → New query → klistra in → Run.
 -- Filen kan köras flera gånger (den använder "if not exists").
+--
+-- OBS: Har du en GAMMAL databas (kampanjer utan ägare)? Kör först
+-- db/migrations/001_campaign_owner.sql. Den lägger till kolumnen owner_id.
 
 -- ---------------------------------------------------------------
 -- 1. campaigns: en kampanj. "slug" blir den publika länken.
@@ -12,6 +15,9 @@ create table if not exists campaigns (
   title        text not null check (char_length(title) between 1 and 120),
   accent_color text not null default '#E3B6B1'
                check (accent_color ~ '^#[0-9A-Fa-f]{6}$'),
+  -- Ägaren: användaren (Supabase Auth) som skapade kampanjen.
+  -- Tas användaren bort, tas kampanjen och allt som hör till den bort.
+  owner_id     uuid not null references auth.users(id) on delete cascade,
   created_at   timestamptz not null default now()
 );
 
@@ -84,6 +90,7 @@ create table if not exists leads (
 -- ---------------------------------------------------------------
 -- Index för snabba sökningar i dashboarden
 -- ---------------------------------------------------------------
+create index if not exists campaigns_owner_idx      on campaigns (owner_id);
 create index if not exists questions_campaign_idx   on questions (campaign_id);
 create index if not exists options_question_idx     on options (question_id);
 create index if not exists submissions_campaign_idx on submissions (campaign_id);

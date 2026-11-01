@@ -17,14 +17,15 @@ async function countAnswersForOption(optionId: string): Promise<number> {
 }
 
 // ---------- Statistik för en kampanj ----------
-// Returnerar null om kampanjen inte finns.
-export async function getCampaignStats(campaignId: string) {
+// Returnerar null om kampanjen inte finns ELLER inte tillhör den inloggade (samma svar i båda fallen).
+export async function getCampaignStats(campaignId: string, ownerId: string) {
   const { data: campaign, error } = await supabase
     .from('campaigns')
     .select(
       'id, slug, title, accent_color, questions(id, position, text, options(id, position, text, is_correct))'
     )
     .eq('id', campaignId)
+    .eq('owner_id', ownerId)
     .maybeSingle()
 
   if (error) failed('kampanj', error.message)
@@ -101,12 +102,13 @@ export async function getCampaignStats(campaignId: string) {
 }
 
 // ---------- Leads för en kampanj (nyaste först) ----------
-// Returnerar null om kampanjen inte finns.
-export async function listLeads(campaignId: string, limit: number, offset: number) {
+// Returnerar null om kampanjen inte finns ELLER inte tillhör den inloggade.
+export async function listLeads(campaignId: string, ownerId: string, limit: number, offset: number) {
   const { data: campaign, error: cError } = await supabase
     .from('campaigns')
     .select('id')
     .eq('id', campaignId)
+    .eq('owner_id', ownerId)
     .maybeSingle()
   if (cError) failed('kampanj', cError.message)
   if (!campaign) return null

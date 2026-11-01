@@ -37,7 +37,8 @@ Frontend pratar bara med backend. Den pratar aldrig direkt med Supabase.
 
 2. **Skapa databasen.** I Supabase: SQL Editor → New query.
    - Klistra in `backend/db/schema.sql` och kör.
-   - Vill du ha testdata: klistra in `backend/db/seed.sql` och kör. Då får du kampanjen `demo-hostquiz`.
+   - Har du en äldre databas (från före ägarskapet)? Kör `backend/db/migrations/001_campaign_owner.sql` först. Läs instruktionen överst i filen: du byter e-postadress till ditt konto.
+   - Vill du ha testdata: registrera ett konto i appen först (`/admin/register`). Klistra sedan in `backend/db/seed.sql` och kör. Då får du kampanjen `demo-hostquiz`, som ägs av det första kontot.
 
 3. **Skapa `backend/.env`.** Kopiera `backend/.env.example` till `backend/.env` och fyll i värdena själv (se tabellen nedan). Filen `.env` pushas aldrig till GitHub.
 
@@ -79,7 +80,7 @@ Servern startar inte om något viktigt värde saknas. Då visas ett tydligt felm
 ```
 quiz-kampanj/
 ├── backend/
-│   ├── db/               schema.sql och seed.sql (körs i Supabase)
+│   ├── db/               schema.sql, seed.sql och migrations/ (körs i Supabase)
 │   └── src/
 │       ├── config/       miljövariabler
 │       ├── database/     Supabase-klienten
@@ -140,6 +141,7 @@ Admin (kräver inloggning):
 - Spärrar mot spam: max 5 felaktiga inloggningar per 15 minuter, 10 nya konton per timme, 60 inskickade quiz och 30 leads per 10 minuter och IP-adress.
 - Samtyckestexten finns på ett ställe (`backend/src/lib/consent.ts`). Texten som besökaren godkände sparas tillsammans med varje lead.
 - Namn och e-post loggas aldrig och skickas aldrig tillbaka i svar. Leads-svaren för admin cachas inte.
+- Varje kampanj har en ägare. Admin-routes filtrerar på inloggad användare, och någon annans kampanj ger 404.
 - Supabase-tabellerna har RLS påslaget utan policies. Bara backend (med den hemliga nyckeln) kommer åt dem.
 
 ## Vanliga problem
@@ -172,9 +174,9 @@ Klart:
 - Lead-formulär med GDPR-samtycke
 - Admin-dashboard (statistik och leads)
 - Registrering och inloggning med Supabase Auth
+- Ägarskap: varje användare ser bara sina egna kampanjer, statistik och leads
 
 På gång / idéer:
-- Koppla kampanjer till ägaren, så att varje användare bara ser sina egna
 - Bekräftelse av e-post (stöds i koden, men är avstängd medan vi testar)
 - Radera lead eller kampanj (GDPR)
 - Export av leads till CSV

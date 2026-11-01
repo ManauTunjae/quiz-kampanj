@@ -7,10 +7,11 @@ import { slugify } from '../utils/slugify.js'
 // Om något går fel kastar vi ett Error. index.ts fångar det (app.onError) och svarar 500.
 
 // ---------- Lista med antal frågor och deltagare ----------
-export async function listCampaigns() {
+export async function listCampaigns(ownerId: string) {
   const { data, error } = await supabase
     .from('campaigns')
     .select('id, slug, title, accent_color, created_at, questions(count), submissions(count)')
+    .eq('owner_id', ownerId) // bara den inloggades egna kampanjer
     .order('created_at', { ascending: false })
 
   if (error) throw new Error(`Kunde inte hämta kampanjer: ${error.message}`)
@@ -27,7 +28,7 @@ export async function listCampaigns() {
 }
 
 // ---------- Skapa kampanj med frågor och alternativ ----------
-export async function createCampaign(input: CreateCampaignInput) {
+export async function createCampaign(input: CreateCampaignInput, ownerId: string) {
   // 1) Skapa kampanjen. Om sluggen redan finns, lägg till fyra slumptecken.
   const baseSlug = slugify(input.title)
   let slug = baseSlug
@@ -36,7 +37,7 @@ export async function createCampaign(input: CreateCampaignInput) {
   for (let attempt = 0; attempt < 4 && !campaign; attempt++) {
     const { data, error } = await supabase
       .from('campaigns')
-      .insert({ slug, title: input.title, accent_color: input.accentColor })
+      .insert({ slug, title: input.title, accent_color: input.accentColor, owner_id: ownerId })
       .select('id, slug, title, accent_color')
       .single()
 
