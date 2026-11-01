@@ -14,14 +14,17 @@ export default function ProtectedLayout({ children }: { children: ReactNode }) {
   const router = useRouter()
   const [status, setStatus] = useState<Status>('checking')
   const [attempt, setAttempt] = useState(0)
+  const [email, setEmail] = useState('')
 
   useEffect(() => {
     let active = true
     getMe()
-      .then((loggedIn) => {
+      .then((me) => {
         if (!active) return
-        if (loggedIn) setStatus('ok')
-        else router.replace('/admin/login')
+        if (me.loggedIn) {
+          setEmail(me.user?.email ?? '')
+          setStatus('ok')
+        } else router.replace('/admin/login')
       })
       .catch(() => {
         if (active) setStatus('offline')
@@ -94,6 +97,11 @@ export default function ProtectedLayout({ children }: { children: ReactNode }) {
             Logga ut
           </Button>
         </nav>
+        {email && (
+          <p className="w-full text-sm break-all text-blush-300">
+            Inloggad som <span className="text-blush-100">{email}</span>
+          </p>
+        )}
       </header>
       <main className="pt-8">{children}</main>
     </div>

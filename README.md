@@ -6,6 +6,7 @@ Ett övningsprojekt: en quiz-kampanj med lead-formulär.
 - Besökaren öppnar en publik länk och svarar på en fråga i taget.
 - Poängen räknas på servern. Besökaren får ett resultatkort med konfetti.
 - Besökaren kan lämna namn och e-post med GDPR-samtycke.
+- Admin skapar ett konto och loggar in (Supabase Auth).
 - Admin ser en dashboard: antal deltagare, svar per fråga och en lista med leads.
 
 > Bara påhittad testdata ska användas. Använd t.ex. `anna@example.com`.
@@ -40,6 +41,8 @@ Frontend pratar bara med backend. Den pratar aldrig direkt med Supabase.
 
 3. **Skapa `backend/.env`.** Kopiera `backend/.env.example` till `backend/.env` och fyll i värdena själv (se tabellen nedan). Filen `.env` pushas aldrig till GitHub.
 
+   Under Authentication i Supabase: slå på Email-inloggning. Medan du bygger och testar kan du stänga av **Confirm email** och sätta Site URL till `http://localhost:3000`.
+
 4. **Skapa `frontend/.env.local`.** Kopiera `frontend/.env.example`. Där finns inga hemligheter.
 
 5. **Starta:**
@@ -57,16 +60,16 @@ Frontend pratar bara med backend. Den pratar aldrig direkt med Supabase.
 | --- | --- |
 | `PORT` | Port för backend. Standard `8000`. |
 | `FRONTEND_ORIGIN` | Adressen till frontend, exakt `http://localhost:3000`. Används för CORS och csrf-skydd. |
-| `ADMIN_PASSWORD` | Lösenordet för admin-inloggningen. |
-| `SESSION_SECRET` | Minst 32 tecken. Skapa med `openssl rand -base64 32`. |
+| `SESSION_SECRET` | Minst 32 tecken. Skapa med `openssl rand -base64 32`. Signerar inloggningscookien. |
 | `SUPABASE_URL` | Projektets URL (Project Settings → API). |
 | `SUPABASE_SECRET_KEY` | Den hemliga nyckeln. Används bara i backend. **Aldrig i frontend, aldrig i git.** |
+| `SUPABASE_PUBLISHABLE_KEY` | Den publicerbara nyckeln. Används bara för att registrera och logga in användare. |
 
 Servern startar inte om något viktigt värde saknas. Då visas ett tydligt felmeddelande.
 
 ## Så använder du appen
 
-1. Gå till http://localhost:3000/admin/login och logga in.
+1. Gå till http://localhost:3000/admin/register och skapa ett konto (e-post och lösenord, minst 8 tecken). Därefter loggar du in på http://localhost:3000/admin/login.
 2. Skapa en kampanj under **Ny kampanj**.
 3. Under **Kampanjer** kan du kopiera den publika länken (`/q/<slug>`) och öppna **Visa statistik**.
 4. Öppna länken, t.ex. http://localhost:3000/q/demo-hostquiz, och svara på quizet.
@@ -108,9 +111,10 @@ Inloggning:
 
 | Metod och adress | Vad den gör |
 | --- | --- |
-| `POST /auth/login` | Logga in. Sätter en httpOnly-cookie. |
+| `POST /auth/register` | Skapa konto (Supabase Auth). Loggar in direkt om e-postbekräftelse är av. |
+| `POST /auth/login` | Logga in med e-post och lösenord. Sätter en httpOnly-cookie. |
 | `POST /auth/logout` | Logga ut |
-| `GET /auth/me` | Är jag inloggad? |
+| `GET /auth/me` | Är jag inloggad? Vem? |
 
 Admin (kräver inloggning):
 
@@ -132,7 +136,8 @@ Admin (kräver inloggning):
 
 - Hemligheter finns bara i `.env` (som ignoreras av git). `.env.example` har tomma värden.
 - Rätt svar skickas aldrig till besökaren. Poängen räknas på servern.
-- Spärrar mot spam: max 5 felaktiga inloggningar per 15 minuter, 60 inskickade quiz och 30 leads per 10 minuter och IP-adress.
+- Användare och lösenord ligger i Supabase Auth. Vi sparar inga lösenord. Cookien innehåller användarens id och e-post (signerad), aldrig lösenord eller token.
+- Spärrar mot spam: max 5 felaktiga inloggningar per 15 minuter, 10 nya konton per timme, 60 inskickade quiz och 30 leads per 10 minuter och IP-adress.
 - Samtyckestexten finns på ett ställe (`backend/src/lib/consent.ts`). Texten som besökaren godkände sparas tillsammans med varje lead.
 - Namn och e-post loggas aldrig och skickas aldrig tillbaka i svar. Leads-svaren för admin cachas inte.
 - Supabase-tabellerna har RLS påslaget utan policies. Bara backend (med den hemliga nyckeln) kommer åt dem.
@@ -142,6 +147,8 @@ Admin (kräver inloggning):
 | Problem | Lösning |
 | --- | --- |
 | Backend startar inte och klagar på saknade värden | Fyll i `backend/.env` och starta om |
+| 400 vid registrering | Supabase godkänner inte alla adresser (t.ex. `example.com`). Använd en riktig e-postadress. Se felkoden i backend-terminalen. |
+| 429 vid registrering | Supabase begränsar antalet registreringar per timme. Vänta en stund. |
 | `403 Forbidden` i Postman | Body → raw → JSON (t.ex. `{}`) |
 | Inloggningen "fastnar" i webbläsaren | Öppna `http://localhost:3000`, inte `127.0.0.1` |
 | CORS-fel i konsolen | Kontrollera `FRONTEND_ORIGIN` (exakt `http://localhost:3000`) och starta om backend |
@@ -164,9 +171,11 @@ Klart:
 - Resultat med poäng på servern, resultatkort och konfetti
 - Lead-formulär med GDPR-samtycke
 - Admin-dashboard (statistik och leads)
+- Registrering och inloggning med Supabase Auth
 
 På gång / idéer:
-- Riktig inloggning med Supabase Auth (flera användare, varje användare ser bara sina kampanjer)
+- Koppla kampanjer till ägaren, så att varje användare bara ser sina egna
+- Bekräftelse av e-post (stöds i koden, men är avstängd medan vi testar)
 - Radera lead eller kampanj (GDPR)
 - Export av leads till CSV
 - Publicering (deploy)
