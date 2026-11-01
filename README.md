@@ -74,6 +74,7 @@ Servern startar inte om något viktigt värde saknas. Då visas ett tydligt felm
 2. Skapa en kampanj under **Ny kampanj**.
 3. Under **Kampanjer** kan du kopiera den publika länken (`/q/<slug>`) och öppna **Visa statistik**.
 4. Öppna länken, t.ex. http://localhost:3000/q/demo-hostquiz, och svara på quizet.
+5. Under **Visa statistik** kan du radera en lead (en persons uppgifter) eller hela kampanjen. Det går inte att ångra.
 
 ## Mappar
 
@@ -125,6 +126,8 @@ Admin (kräver inloggning):
 | `POST /api/admin/campaigns` | Skapa kampanj |
 | `GET /api/admin/campaigns/:id/stats` | Statistik per fråga |
 | `GET /api/admin/campaigns/:id/leads` | Leads (`?limit=50&offset=0`) |
+| `DELETE /api/admin/campaigns/:id/leads/:leadId` | Radera en lead (namn och e-post). Deltagaren och svaren finns kvar. |
+| `DELETE /api/admin/campaigns/:id` | Radera kampanjen och allt som hör till den |
 
 ## Testa API:t i Postman
 
@@ -175,9 +178,9 @@ Klart:
 - Admin-dashboard (statistik och leads)
 - Registrering och inloggning med Supabase Auth
 - Ägarskap: varje användare ser bara sina egna kampanjer, statistik och leads
+- Radera en lead eller en hel kampanj (GDPR), med frågan "Är du säker?"
 
 På gång / idéer:
 - Bekräftelse av e-post (stöds i koden, men är avstängd medan vi testar)
-- Radera lead eller kampanj (GDPR)
 - Export av leads till CSV
 - Publicering (deploy)

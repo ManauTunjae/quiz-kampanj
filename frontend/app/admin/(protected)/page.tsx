@@ -2,10 +2,11 @@
 
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { ConfirmDelete } from '@/components/admin/confirm-delete'
 import { CopyLinkButton } from '@/components/admin/copy-link-button'
 import { Button, buttonStyles } from '@/components/ui/button'
-import { ApiError, listCampaigns } from '@/lib/api'
+import { ApiError, deleteCampaign, listCampaigns } from '@/lib/api'
 import { formatDate, plural } from '@/lib/format'
 import type { CampaignSummary } from '@/lib/types'
 
@@ -18,6 +19,26 @@ export default function AdminCampaignsPage() {
   const router = useRouter()
   const [state, setState] = useState<State>({ status: 'loading' })
   const [attempt, setAttempt] = useState(0)
+  const [deletedCount, setDeletedCount] = useState(0)
+  const noticeRef = useRef<HTMLParagraphElement>(null)
+
+  // Efter radering försvinner knappen. Flytta fokus till beskedet.
+  useEffect(() => {
+    if (deletedCount > 0) noticeRef.current?.focus()
+  }, [deletedCount])
+
+  async function removeCampaign(id: string) {
+    try {
+      await deleteCampaign(id)
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 401) return router.replace('/admin/login')
+      if (!(err instanceof ApiError && err.status === 404)) throw err // 404 = redan raderad
+    }
+    setState((prev) =>
+      prev.status === 'ready' ? { status: 'ready', campaigns: prev.campaigns.filter((c) => c.id !== id) } : prev
+    )
+    setDeletedCount((n) => n + 1)
+  }
 
   useEffect(() => {
     let active = true
@@ -49,6 +70,17 @@ export default function AdminCampaignsPage() {
           + Ny kampanj
         </Link>
       </div>
+
+      {deletedCount > 0 && (
+        <p
+          ref={noticeRef}
+          tabIndex={-1}
+          role="status"
+          className="mb-4 rounded-xl border border-blush-300/40 px-4 py-3 text-blush-100"
+        >
+          Kampanjen är raderad.
+        </p>
+      )}
 
       {state.status === 'loading' && (
         <p role="status" className="text-blush-300">
@@ -108,6 +140,14 @@ export default function AdminCampaignsPage() {
                   Visa statistik
                 </Link>
                 <CopyLinkButton slug={c.slug} />
+                <ConfirmDelete
+                  label="Radera"
+                  ariaLabel={`Radera kampanjen ${c.title}`}
+                  question={`Radera "${c.title}"?`}
+                  warning={`Frågor, ${plural(c.participantCount, 'deltagare', 'deltagare')} och alla leads tas bort för alltid.`}
+                  confirmLabel="Ja, radera allt"
+                  onConfirm={() => removeCampaign(c.id)}
+                />
               </div>
             </li>
           ))}

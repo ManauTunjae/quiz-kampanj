@@ -3,6 +3,9 @@ import { z } from 'zod'
 // /api/admin/campaigns/:id/...
 export const campaignIdParamSchema = z.object({ id: z.uuid() })
 
+// /api/admin/campaigns/:id/leads/:leadId
+export const leadParamSchema = z.object({ id: z.uuid(), leadId: z.uuid() })
+
 // /api/admin/campaigns/:id/leads?limit=100&offset=0
 export const leadsQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(500).default(100),

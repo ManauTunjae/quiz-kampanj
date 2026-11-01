@@ -4,10 +4,11 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useState } from 'react'
 import { CopyLinkButton } from '@/components/admin/copy-link-button'
+import { ConfirmDelete } from '@/components/admin/confirm-delete'
 import { LeadsList } from '@/components/admin/leads-list'
 import { QuestionStats } from '@/components/admin/question-stats'
 import { Button } from '@/components/ui/button'
-import { ApiError, getCampaignStats } from '@/lib/api'
+import { ApiError, deleteCampaign, getCampaignStats } from '@/lib/api'
 import { formatNumber } from '@/lib/format'
 import type { CampaignStats } from '@/lib/types'
 
@@ -95,6 +96,25 @@ export function CampaignDashboard({ campaignId }: { campaignId: string }) {
   }
 
   const { stats } = state
+
+  async function removeCampaign() {
+    try {
+      await deleteCampaign(campaignId)
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 401) return goToLogin()
+      if (!(err instanceof ApiError && err.status === 404)) throw err // 404 = redan raderad
+    }
+    router.replace('/admin')
+  }
+
+  // När en lead raderas räknar vi ner siffran direkt (utan att hämta om allt)
+  function onLeadDeleted() {
+    setState((prev) =>
+      prev.status === 'ready'
+        ? { status: 'ready', stats: { ...prev.stats, leadCount: Math.max(0, prev.stats.leadCount - 1) } }
+        : prev
+    )
+  }
   const leadShare =
     stats.participantCount === 0 ? null : Math.round((stats.leadCount / stats.participantCount) * 100)
 
@@ -152,7 +172,23 @@ export function CampaignDashboard({ campaignId }: { campaignId: string }) {
         <h2 id="leads-heading" className="text-2xl text-blush-100">
           Leads
         </h2>
-        <LeadsList campaignId={campaignId} onUnauthorized={goToLogin} />
+        <LeadsList campaignId={campaignId} onUnauthorized={goToLogin} onLeadDeleted={onLeadDeleted} />
+      </section>
+
+      <section aria-labelledby="delete-heading" className="space-y-4 border-t border-blush-300/20 pt-8">
+        <h2 id="delete-heading" className="text-2xl text-blush-100">
+          Radera kampanj
+        </h2>
+        <p className="text-blush-300">
+          Raderar kampanjen, frågorna, {stats.participantCount} deltagare och {stats.leadCount} leads.
+        </p>
+        <ConfirmDelete
+          label="Radera kampanjen"
+          question={`Radera "${stats.campaign.title}"?`}
+          warning="Allt som hör till kampanjen tas bort för alltid. Den publika länken slutar fungera."
+          confirmLabel="Ja, radera allt"
+          onConfirm={removeCampaign}
+        />
       </section>
     </div>
   )

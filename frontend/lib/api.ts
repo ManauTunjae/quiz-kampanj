@@ -33,7 +33,7 @@ export class ApiError extends Error {
 
 async function request<T>(
   path: string,
-  options: { method?: 'GET' | 'POST'; body?: unknown } = {}
+  options: { method?: 'GET' | 'POST' | 'DELETE'; body?: unknown } = {}
 ): Promise<T> {
   const method = options.method ?? 'GET'
   let res: Response
@@ -43,8 +43,8 @@ async function request<T>(
       method,
       // Utan "include" skickar webbläsaren inte admin-cookien till port 8000.
       credentials: 'include',
-      // Backend kräver Content-Type på POST (skydd mot formulär från andra sidor).
-      // Därför skickar vi alltid en JSON-body på POST, även ett tomt objekt.
+      // Backend kräver Content-Type på POST och DELETE (skydd mot formulär från andra sidor).
+      // Därför skickar vi alltid en JSON-body, även ett tomt objekt.
       headers: method === 'GET' ? undefined : { 'Content-Type': 'application/json' },
       body: method === 'GET' ? undefined : JSON.stringify(options.body ?? {}),
     })
@@ -131,4 +131,20 @@ export function getCampaignLeads(campaignId: string, limit: number, offset: numb
 
 export function createCampaign(input: NewCampaignInput) {
   return request<CreatedCampaign>('/api/admin/campaigns', { method: 'POST', body: input })
+}
+
+// ---------- Radera (admin) ----------
+// Raderar en persons namn och e-post. Deltagaren och svaren finns kvar.
+export function deleteLead(campaignId: string, leadId: string) {
+  return request<{ ok: true }>(
+    `/api/admin/campaigns/${encodeURIComponent(campaignId)}/leads/${encodeURIComponent(leadId)}`,
+    { method: 'DELETE' }
+  )
+}
+
+// Raderar kampanjen och allt som hör till den (frågor, deltagare, leads).
+export function deleteCampaign(campaignId: string) {
+  return request<{ ok: true }>(`/api/admin/campaigns/${encodeURIComponent(campaignId)}`, {
+    method: 'DELETE',
+  })
 }

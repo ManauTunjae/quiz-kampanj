@@ -1,8 +1,9 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { ApiError, getCampaignLeads } from '@/lib/api'
+import { ConfirmDelete } from '@/components/admin/confirm-delete'
+import { ApiError, deleteLead, getCampaignLeads } from '@/lib/api'
 import { formatDate } from '@/lib/format'
 import type { LeadRow } from '@/lib/types'
 
@@ -14,11 +15,26 @@ type State =
   | { status: 'ready'; leads: LeadRow[]; total: number }
 
 // Lista med leads (personuppgifter). Hämtar 50 åt gången.
-export function LeadsList({ campaignId, onUnauthorized }: { campaignId: string; onUnauthorized: () => void }) {
+export function LeadsList({
+  campaignId,
+  onUnauthorized,
+  onLeadDeleted,
+}: {
+  campaignId: string
+  onUnauthorized: () => void
+  onLeadDeleted?: () => void // så att siffrorna högst upp kan räkna ner
+}) {
   const [state, setState] = useState<State>({ status: 'loading' })
   const [attempt, setAttempt] = useState(0)
   const [loadingMore, setLoadingMore] = useState(false)
   const [moreError, setMoreError] = useState<string | null>(null)
+  const [deletedCount, setDeletedCount] = useState(0)
+  const countRef = useRef<HTMLParagraphElement>(null)
+
+  // Efter radering försvinner knappen. Flytta fokus hit så skärmläsare läser upp beskedet.
+  useEffect(() => {
+    if (deletedCount > 0) countRef.current?.focus()
+  }, [deletedCount])
 
   useEffect(() => {
     let active = true
@@ -51,6 +67,24 @@ export function LeadsList({ campaignId, onUnauthorized }: { campaignId: string; 
     }
   }
 
+  async function removeLead(id: string) {
+    let reallyDeleted = true
+    try {
+      await deleteLead(campaignId, id)
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 401) return onUnauthorized()
+      if (err instanceof ApiError && err.status === 404) reallyDeleted = false // fanns redan inte
+      else throw err // ConfirmDelete visar felet
+    }
+    setState((prev) =>
+      prev.status === 'ready'
+        ? { status: 'ready', leads: prev.leads.filter((l) => l.id !== id), total: Math.max(0, prev.total - 1) }
+        : prev
+    )
+    setDeletedCount((n) => n + 1)
+    if (reallyDeleted) onLeadDeleted?.()
+  }
+
   if (state.status === 'loading') {
     return (
       <p role="status" className="text-blush-300">
@@ -76,7 +110,7 @@ export function LeadsList({ campaignId, onUnauthorized }: { campaignId: string; 
     )
   }
 
-  if (state.leads.length === 0) {
+  if (state.total === 0) {
     return (
       <p className="rounded-2xl border border-blush-300/20 bg-plum-900 p-5 text-blush-100">
         Ingen har lämnat sina uppgifter än.
@@ -86,7 +120,8 @@ export function LeadsList({ campaignId, onUnauthorized }: { campaignId: string; 
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-blush-300" aria-live="polite">
+      <p ref={countRef} tabIndex={-1} className="text-sm text-blush-300" aria-live="polite">
+        {deletedCount > 0 && 'Leaden är raderad. '}
         Visar {state.leads.length} av {state.total}
       </p>
       <ul className="space-y-3">
@@ -101,6 +136,16 @@ export function LeadsList({ campaignId, onUnauthorized }: { campaignId: string; 
             <p className="text-sm text-blush-300">
               {lead.score} av {lead.total} rätt · samtycke {formatDate(lead.consentAt)}
             </p>
+            <div className="pt-2">
+              <ConfirmDelete
+                label="Radera"
+                ariaLabel={`Radera uppgifterna för ${lead.name}`}
+                question={`Radera uppgifterna för ${lead.name}?`}
+                warning="Namn och e-post tas bort för alltid. Svaren i statistiken finns kvar."
+                confirmLabel="Ja, radera"
+                onConfirm={() => removeLead(lead.id)}
+              />
+            </div>
           </li>
         ))}
       </ul>

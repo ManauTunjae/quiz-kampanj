@@ -2,7 +2,8 @@ import { zValidator } from '@hono/zod-validator'
 import { Hono, type Context } from 'hono'
 import type { AuthEnv } from '../middleware/require-user.js'
 import { getCampaignStats, listLeads } from '../services/dashboard-service.js'
-import { campaignIdParamSchema, leadsQuerySchema } from '../validation/dashboard.js'
+import { deleteLead } from '../services/delete-service.js'
+import { campaignIdParamSchema, leadParamSchema, leadsQuerySchema } from '../validation/dashboard.js'
 import { onInvalid } from '../validation/hook.js'
 
 // Skyddad av requireAdmin (se index.ts). Monteras på /api/admin.
@@ -33,5 +34,19 @@ adminDashboard.get(
     // Personuppgifter ska inte sparas i någon cache
     c.header('Cache-Control', 'no-store')
     return c.json(result)
+  }
+)
+
+// DELETE /api/admin/campaigns/:id/leads/:leadId → raderar en persons namn och e-post (GDPR)
+adminDashboard.delete(
+  '/campaigns/:id/leads/:leadId',
+  zValidator('param', leadParamSchema, (result, c) => {
+    if (!result.success) return c.json({ error: 'Leaden finns inte' }, 404)
+  }),
+  async (c) => {
+    const { id, leadId } = c.req.valid('param')
+    const deleted = await deleteLead(id, leadId, c.get('user').id)
+    if (!deleted) return c.json({ error: 'Leaden finns inte' }, 404)
+    return c.json({ ok: true })
   }
 )
